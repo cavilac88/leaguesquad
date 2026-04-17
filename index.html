@@ -484,10 +484,22 @@ function selRole(r){selRole_=r;document.getElementById('r-player').classList.tog
 async function doLogin(){
   const email=document.getElementById('login-email').value.trim();
   const pass=document.getElementById('login-password').value;
-  document.getElementById('login-err').textContent='';
-  if(!email||!pass){document.getElementById('login-err').textContent='Please enter email and password';return;}
-  const{error}=await sb.auth.signInWithPassword({email,password:pass});
-  if(error)document.getElementById('login-err').textContent=error.message;
+  const errEl=document.getElementById('login-err');
+  const btn=document.querySelector('#pane-login .btn-primary');
+  errEl.textContent='';
+  if(!email||!pass){errEl.textContent='Please enter email and password';return;}
+  btn.textContent='Signing in...';
+  btn.disabled=true;
+  try {
+    const{data,error}=await sb.auth.signInWithPassword({email,password:pass});
+    if(error){errEl.textContent=error.message;return;}
+    if(!data?.session){errEl.textContent='No session returned — check your email is confirmed in Supabase.';}
+  } catch(e){
+    errEl.textContent='Connection error: '+e.message;
+  } finally {
+    btn.textContent='Sign in';
+    btn.disabled=false;
+  }
 }
 
 // SIGNUP
