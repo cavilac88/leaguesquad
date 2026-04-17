@@ -191,8 +191,8 @@ select.form-input{appearance:none;cursor:pointer;}
     <!-- SIGNUP -->
     <div id="pane-signup" style="display:none">
       <div class="form-row-2">
-        <div class="form-group"><label class="form-label">First name</label><input class="form-input" type="text" id="su-first" placeholder="Alex"></div>
-        <div class="form-group"><label class="form-label">Last name</label><input class="form-input" type="text" id="su-last" placeholder="Rivera"></div>
+        <div class="form-group"><label class="form-label">First name</label><input class="form-input" type="text" id="su-first" placeholder="First name"></div>
+        <div class="form-group"><label class="form-label">Last name</label><input class="form-input" type="text" id="su-last" placeholder="Last name"></div>
       </div>
       <div class="form-group"><label class="form-label">Email</label><input class="form-input" type="email" id="su-email" placeholder="you@example.com"></div>
       <div class="form-group"><label class="form-label">Phone (optional)</label><input class="form-input" type="tel" id="su-phone" placeholder="+1 (555) 000-0000"></div>
@@ -248,6 +248,15 @@ select.form-input{appearance:none;cursor:pointer;}
   <div class="app-layout">
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-logo" id="sb-logo"></div>
+      <div class="sidebar-section-label">Sport</div>
+      <div style="padding:0 2px;margin-bottom:12px">
+        <select id="active-sport" class="form-input" style="font-size:13px;padding:8px 12px" onchange="changeSport(this.value)">
+          <option value="kickball" selected>Kickball</option>
+          <option value="soccer" disabled>Soccer (coming soon)</option>
+          <option value="softball" disabled>Softball (coming soon)</option>
+          <option value="volleyball" disabled>Volleyball (coming soon)</option>
+        </select>
+      </div>
       <div class="sidebar-section-label">Menu</div>
       <button class="nav-item active" onclick="nav('dashboard')"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>Dashboard</button>
       <button class="nav-item" onclick="nav('roster')"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>Roster</button>
@@ -280,8 +289,8 @@ select.form-input{appearance:none;cursor:pointer;}
             <div style="display:flex;flex-direction:column;gap:8px">
               <button class="btn btn-ghost" style="justify-content:flex-start" onclick="openM('m-player')">+ Add player to roster</button>
               <button class="btn btn-ghost" style="justify-content:flex-start" onclick="openM('m-game')">+ Schedule a game</button>
-              <button class="btn btn-ghost" style="justify-content:flex-start" onclick="nav('messages')">💬 Message the team</button>
-              <button class="btn btn-ghost" style="justify-content:flex-start" onclick="nav('lineup')">⭐ Set lineup</button>
+              <button class="btn btn-ghost" style="justify-content:flex-start" onclick="nav('messages')">Message the team</button>
+              <button class="btn btn-ghost" style="justify-content:flex-start" onclick="nav('lineup')">Set lineup</button>
             </div>
           </div>
         </div>
@@ -369,8 +378,8 @@ select.form-input{appearance:none;cursor:pointer;}
         <div class="card" style="margin-bottom:16px">
           <div class="card-title">Personal information</div>
           <div class="form-row-2">
-            <div class="form-group"><label class="form-label">First name</label><input class="form-input" type="text" id="prof-first" placeholder="Alex"></div>
-            <div class="form-group"><label class="form-label">Last name</label><input class="form-input" type="text" id="prof-last" placeholder="Rivera"></div>
+            <div class="form-group"><label class="form-label">First name</label><input class="form-input" type="text" id="prof-first" placeholder="First name"></div>
+            <div class="form-group"><label class="form-label">Last name</label><input class="form-input" type="text" id="prof-last" placeholder="Last name"></div>
           </div>
           <div class="form-row-2">
             <div class="form-group"><label class="form-label">Email</label><input class="form-input" type="email" id="prof-email" placeholder="you@example.com" disabled style="opacity:0.5;cursor:not-allowed"></div>
@@ -408,7 +417,7 @@ select.form-input{appearance:none;cursor:pointer;}
 <div class="modal-overlay" id="m-player">
   <div class="modal">
     <div class="modal-header"><div class="modal-title">Add player</div><button class="modal-close" onclick="closeM('m-player')">✕</button></div>
-    <div class="form-row-2"><div class="form-group"><label class="form-label">First name</label><input class="form-input" type="text" id="p-first" placeholder="Alex"></div><div class="form-group"><label class="form-label">Last name</label><input class="form-input" type="text" id="p-last" placeholder="Rivera"></div></div>
+    <div class="form-row-2"><div class="form-group"><label class="form-label">First name</label><input class="form-input" type="text" id="p-first" placeholder="First name"></div><div class="form-group"><label class="form-label">Last name</label><input class="form-input" type="text" id="p-last" placeholder="Last name"></div></div>
     <div class="form-row-2"><div class="form-group"><label class="form-label">Role</label><select class="form-input" id="p-role"><option value="player">Player</option><option value="captain">Captain</option></select></div><div class="form-group"><label class="form-label">Sport</label><select class="form-input" id="p-sport"><option value="kickball">Kickball</option><option value="soccer">Soccer</option><option value="softball">Softball</option><option value="volleyball">Volleyball</option></select></div></div>
     <div class="form-group"><label class="form-label">Email (optional)</label><input class="form-input" type="email" id="p-email" placeholder="player@example.com"></div>
     <div class="form-group"><label class="form-label">City (optional)</label><input class="form-input" type="text" id="p-city" placeholder="Boston"></div>
@@ -548,22 +557,37 @@ async function doReset(){
 async function doUpdatePass(){
   const np=document.getElementById('new-pass').value;
   const cp=document.getElementById('conf-pass').value;
+  const btn=document.querySelector('#pane-update .btn-primary');
   document.getElementById('update-err').textContent='';
   if(np.length<6){document.getElementById('update-err').textContent='Min. 6 characters';return;}
   if(np!==cp){document.getElementById('update-err').textContent='Passwords do not match';return;}
-  const{error}=await sb.auth.updateUser({password:np});
+  btn.textContent='Updating...';btn.disabled=true;
+  const{data,error}=await sb.auth.updateUser({password:np});
+  btn.textContent='Update password';btn.disabled=false;
   if(error){document.getElementById('update-err').textContent=error.message;return;}
-  toast('Password updated!','success');
-  setTimeout(()=>switchTab('login'),1500);
+  toast('Password updated! Signing you in...','success');
+  isRecoveryMode = false;
+  // Session already exists after updateUser, load app
+  const{data:{session}}=await sb.auth.getSession();
+  if(session?.user){
+    user=session.user;
+    await loadProfile();
+    showApp();
+  } else {
+    switchTab('login');
+  }
 }
 
 async function doSignout(){await sb.auth.signOut();location.reload();}
 
 // AUTH STATE
 // Handle Supabase password recovery token in URL
+let isRecoveryMode = false;
+
 (async () => {
   const hash = window.location.hash;
   if (hash && hash.includes('type=recovery')) {
+    isRecoveryMode = true;
     const params = new URLSearchParams(hash.replace('#', ''));
     const accessToken = params.get('access_token');
     const refreshToken = params.get('refresh_token');
@@ -572,13 +596,19 @@ async function doSignout(){await sb.auth.signOut();location.reload();}
       showAuth();
       switchTab('update');
       window.history.replaceState(null, '', window.location.pathname);
-      return;
     }
   }
 })();
 
 sb.auth.onAuthStateChange(async(event,session)=>{
-  if(event==='PASSWORD_RECOVERY'){showAuth();switchTab('update');return;}
+  if(event==='PASSWORD_RECOVERY'){
+    isRecoveryMode = true;
+    showAuth();
+    switchTab('update');
+    return;
+  }
+  // Don't redirect to app if we're in recovery mode
+  if(isRecoveryMode) return;
   if(session?.user){user=session.user;await loadProfile();showApp();}
   else showAuth();
 });
@@ -607,6 +637,15 @@ function nav(page){
   if(window.innerWidth<=768)document.getElementById('sidebar').classList.remove('open');
   ({dashboard:loadDashboard,roster:loadRoster,schedule:loadSchedule,lineup:loadLineup,messages:loadMessages,profile:loadProfilePage}[page]?.());
 }
+
+function changeSport(sport) {
+  if (sport !== 'kickball') {
+    document.getElementById('active-sport').value = 'kickball';
+    toast('More sports coming soon!', 'success');
+    return;
+  }
+}
+
 function toggleSidebar(){document.getElementById('sidebar').classList.toggle('open');}
 
 // DASHBOARD
@@ -785,7 +824,7 @@ async function loadProfilePage() {
   const fields = {
     'prof-first': data.first_name || '',
     'prof-last':  data.last_name  || '',
-    'prof-email': data.email      || user.email || '',
+    'prof-email': data.email || user?.email || '',
     'prof-phone': data.phone      || '',
     'prof-dob':   data.dob        || '',
     'prof-street':data.street     || '',
@@ -857,31 +896,47 @@ document.addEventListener('DOMContentLoaded', () => {
   if (countryEl) countryEl.addEventListener('input', e => updateZipState(e.target.value));
 });
 
+let isSaving = false;
 async function saveProfile() {
-  const photoUrl = document.getElementById('photo-url').value.trim() || (photoDataUrl ? await uploadPhoto() : profile?.photo_url || null);
-  const updates = {
-    id:         user.id,
-    first_name: document.getElementById('prof-first').value.trim(),
-    last_name:  document.getElementById('prof-last').value.trim(),
-    full_name:  (document.getElementById('prof-first').value.trim() + ' ' + document.getElementById('prof-last').value.trim()).trim(),
-    phone:      document.getElementById('prof-phone').value.trim() || null,
-    dob:        document.getElementById('prof-dob').value || null,
-    street:     document.getElementById('prof-street').value.trim() || null,
-    city:       document.getElementById('prof-city').value.trim() || null,
-    state:      document.getElementById('prof-state').value.trim() || null,
-    country:    document.getElementById('prof-country').value.trim() || 'US',
-    zip:        document.getElementById('prof-zip').value.trim() || null,
-    bio:        document.getElementById('profile-bio').value.trim() || null,
-    instagram:  document.getElementById('profile-instagram').value.trim() || null,
-    tiktok:     document.getElementById('profile-tiktok').value.trim() || null,
-    photo_url:  photoUrl,
-  };
-  const { error } = await sb.from('profiles').upsert(updates);
-  if (error) { toast(error.message, 'error'); return; }
-  profile = { ...profile, ...updates };
-  document.getElementById('u-name').textContent = updates.full_name || user.email;
-  document.getElementById('u-avatar').textContent = (updates.first_name || user.email).charAt(0).toUpperCase();
-  toast('Profile saved!', 'success');
+  if (isSaving) return;
+  isSaving = true;
+  const saveBtn = document.querySelector('#page-profile .btn-accent');
+  if (saveBtn) { saveBtn.textContent = 'Saving...'; saveBtn.disabled = true; }
+  try {
+    const photoUrl = document.getElementById('photo-url').value.trim() || (photoDataUrl ? photoDataUrl : profile?.photo_url || null);
+    const first = document.getElementById('prof-first').value.trim();
+    const last  = document.getElementById('prof-last').value.trim();
+    const updates = {
+      id:         user.id,
+      first_name: first,
+      last_name:  last,
+      full_name:  (first + ' ' + last).trim(),
+      email:      user.email,
+      phone:      document.getElementById('prof-phone').value.trim() || null,
+      dob:        document.getElementById('prof-dob').value || null,
+      street:     document.getElementById('prof-street').value.trim() || null,
+      city:       document.getElementById('prof-city').value.trim() || null,
+      state:      document.getElementById('prof-state').value.trim() || null,
+      country:    document.getElementById('prof-country').value.trim() || 'US',
+      zip:        document.getElementById('prof-zip').value.trim() || null,
+      bio:        document.getElementById('profile-bio').value.trim() || null,
+      instagram:  document.getElementById('profile-instagram').value.trim() || null,
+      tiktok:     document.getElementById('profile-tiktok').value.trim() || null,
+      photo_url:  photoUrl,
+    };
+    const { error } = await sb.from('profiles').upsert(updates);
+    if (error) { toast(error.message, 'error'); return; }
+    profile = { ...profile, ...updates };
+    document.getElementById('u-name').textContent = updates.full_name || user.email;
+    document.getElementById('u-avatar').textContent = (first || user.email).charAt(0).toUpperCase();
+    if (updates.photo_url) updateProfileAvatar(updates.photo_url, first);
+    toast('Profile saved!', 'success');
+  } catch(e) {
+    toast('Error saving: ' + e.message, 'error');
+  } finally {
+    isSaving = false;
+    if (saveBtn) { saveBtn.textContent = 'Save changes'; saveBtn.disabled = false; }
+  }
 }
 
 async function uploadPhoto() {
