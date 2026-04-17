@@ -324,7 +324,7 @@ select.form-input{appearance:none;cursor:pointer;}
       <div class="page" id="page-profile">
         <div class="page-header">
           <div><div class="page-title">My Profile</div><div class="page-subtitle">Manage your personal information</div></div>
-          <button class="btn btn-accent" onclick="saveProfile()">Save changes</button>
+          <div style="display:flex;gap:10px;align-items:center"><button class="btn btn-accent" onclick="saveProfile()">Save changes</button><button class="btn btn-ghost" onclick="sendChangePassword()">Change password</button></div>
         </div>
 
         <!-- PHOTO + BIO -->
@@ -525,12 +525,22 @@ async function doSignup(){
 }
 
 // RESET PASSWORD
+
+async function sendChangePassword() {
+  if (!user?.email) return;
+  const { error } = await sb.auth.resetPasswordForEmail(user.email, {
+    redirectTo: 'https://cavilac88.github.io/leaguesquad/'
+  });
+  if (error) { toast(error.message, 'error'); return; }
+  toast('Password reset link sent to ' + user.email, 'success');
+}
+
 async function doReset(){
   const email=document.getElementById('reset-email').value.trim();
   document.getElementById('reset-err').textContent='';
   document.getElementById('reset-ok').textContent='';
   if(!email){document.getElementById('reset-err').textContent='Please enter your email';return;}
-  const{error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:window.location.href});
+  const{error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:'https://cavilac88.github.io/leaguesquad/'});
   if(error){document.getElementById('reset-err').textContent=error.message;return;}
   document.getElementById('reset-ok').textContent='✓ Reset link sent! Check your inbox.';
 }
@@ -550,6 +560,23 @@ async function doUpdatePass(){
 async function doSignout(){await sb.auth.signOut();location.reload();}
 
 // AUTH STATE
+// Handle Supabase password recovery token in URL
+(async () => {
+  const hash = window.location.hash;
+  if (hash && hash.includes('type=recovery')) {
+    const params = new URLSearchParams(hash.replace('#', ''));
+    const accessToken = params.get('access_token');
+    const refreshToken = params.get('refresh_token');
+    if (accessToken) {
+      await sb.auth.setSession({ access_token: accessToken, refresh_token: refreshToken || '' });
+      showAuth();
+      switchTab('update');
+      window.history.replaceState(null, '', window.location.pathname);
+      return;
+    }
+  }
+})();
+
 sb.auth.onAuthStateChange(async(event,session)=>{
   if(event==='PASSWORD_RECOVERY'){showAuth();switchTab('update');return;}
   if(session?.user){user=session.user;await loadProfile();showApp();}
