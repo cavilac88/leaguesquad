@@ -467,17 +467,7 @@ window.matchMedia('(prefers-color-scheme:dark)').addEventListener('change',setLo
 // SUPABASE
 const sb = supabase.createClient(
   'https://yqtcixstlyihhhybnvwc.supabase.co',
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlxdGNpeHN0bHlpaGhoeWJudndjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYzMTA2NjMsImV4cCI6MjA5MTg4NjY2M30.93CECL1Q8Ngm4Tk1t5Fu3Q-Gj1Mae7ASDP53tWQBknA',
-  {
-    auth: {
-      storage: window.localStorage,
-      autoRefreshToken: true,
-      persistSession: true,
-      detectSessionInUrl: true,
-      flowType: 'implicit',
-      lock: async (name, acquireTimeout, fn) => fn()
-    }
-  }
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlxdGNpeHN0bHlpaGhoeWJudndjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYzMTA2NjMsImV4cCI6MjA5MTg4NjY2M30.93CECL1Q8Ngm4Tk1t5Fu3Q-Gj1Mae7ASDP53tWQBknA'
 );
 
 let user=null, profile=null, rsvpGameId=null, selRole_='player';
@@ -638,13 +628,7 @@ sb.auth.onAuthStateChange(async(event, session) => {
     return;
   }
   if (isRecoveryMode) return;
-  // Only auto-navigate on explicit sign in, not on token refresh
-  if (event === 'SIGNED_IN' && !userIsTyping) {
-    user = session.user;
-    await loadProfile();
-    showApp();
-  } else if (event === 'SIGNED_IN' && userIsTyping) {
-    // User just logged in via button - navigate
+  if (event === 'SIGNED_IN' && session?.user) {
     user = session.user;
     await loadProfile();
     showApp();
