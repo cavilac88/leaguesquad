@@ -504,16 +504,21 @@ async function doLogin(){
     if(error){errEl.textContent=error.message;return;}
     if(data?.session?.user){
       user=data.session.user;
-      console.log('Login OK, user:', user.email);
-      try {
-        await loadProfile();
-        console.log('Profile loaded OK');
-      } catch(pe) {
-        console.warn('Profile load failed:', pe.message);
-      }
-      console.log('Showing app...');
+      console.log('Login OK:', user.email);
+      // Set basic profile from auth data directly
+      profile = {
+        full_name: user.user_metadata?.full_name || user.email,
+        first_name: user.user_metadata?.full_name?.split(' ')[0] || '',
+        role: user.user_metadata?.role || 'player',
+        email: user.email
+      };
+      document.getElementById('u-name').textContent = profile.full_name;
+      document.getElementById('u-role').textContent = profile.role;
+      document.getElementById('u-avatar').textContent = profile.full_name.charAt(0).toUpperCase();
+      document.getElementById('greeting').textContent = 'Welcome back, ' + (profile.first_name || user.email) + '!';
       showApp();
-      console.log('App shown');
+      // Load full profile in background
+      loadProfile().catch(e => console.warn('Profile bg load:', e.message));
     } else {
       errEl.textContent='Could not sign in. Please try again.';
     }
