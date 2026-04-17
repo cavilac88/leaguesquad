@@ -382,7 +382,7 @@ select.form-input{appearance:none;cursor:pointer;}
             <div class="form-group"><label class="form-label">Last name</label><input class="form-input" type="text" id="prof-last" placeholder="Last name"></div>
           </div>
           <div class="form-row-2">
-            <div class="form-group"><label class="form-label">Email</label><input class="form-input" type="email" id="prof-email" placeholder="Loading..." disabled style="opacity:0.7;cursor:not-allowed;background:var(--surface2)"></div>
+            <div class="form-group"><label class="form-label">Email</label><input class="form-input" type="email" id="prof-email" placeholder="your@email.com" disabled style="opacity:0.7;cursor:not-allowed"></div>
             <div class="form-group"><label class="form-label">Phone</label><input class="form-input" type="tel" id="prof-phone" placeholder="+1 (555) 000-0000"></div>
           </div>
           <div class="form-group"><label class="form-label">Date of birth <span style="color:var(--text3);font-weight:400;text-transform:none;letter-spacing:0">(optional)</span></label><input class="form-input" type="date" id="prof-dob"></div>
@@ -593,6 +593,15 @@ async function doSignout(){await sb.auth.signOut();location.reload();}
 // AUTH STATE
 // Handle Supabase password recovery token in URL
 let isRecoveryMode = false;
+let userIsTyping = false;
+
+// Detect if user is actively typing credentials
+document.addEventListener('DOMContentLoaded', () => {
+  ['login-email','login-password','su-email','su-pass'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('input', () => { userIsTyping = true; });
+  });
+});
 
 (async () => {
   const hash = window.location.hash;
@@ -606,21 +615,45 @@ let isRecoveryMode = false;
       showAuth();
       switchTab('update');
       window.history.replaceState(null, '', window.location.pathname);
+      return;
     }
+  }
+
+  // Check for existing session on page load (only if not typing)
+  const { data: { session } } = await sb.auth.getSession();
+  if (session?.user && !isRecoveryMode) {
+    user = session.user;
+    await loadProfile();
+    showApp();
+  } else {
+    showAuth();
   }
 })();
 
-sb.auth.onAuthStateChange(async(event,session)=>{
-  if(event==='PASSWORD_RECOVERY'){
+sb.auth.onAuthStateChange(async(event, session) => {
+  if (event === 'PASSWORD_RECOVERY') {
     isRecoveryMode = true;
     showAuth();
     switchTab('update');
     return;
   }
-  // Don't redirect to app if we're in recovery mode
-  if(isRecoveryMode) return;
-  if(session?.user){user=session.user;await loadProfile();showApp();}
-  else showAuth();
+  if (isRecoveryMode) return;
+  // Only auto-navigate on explicit sign in, not on token refresh
+  if (event === 'SIGNED_IN' && !userIsTyping) {
+    user = session.user;
+    await loadProfile();
+    showApp();
+  } else if (event === 'SIGNED_IN' && userIsTyping) {
+    // User just logged in via button - navigate
+    user = session.user;
+    await loadProfile();
+    showApp();
+    userIsTyping = false;
+  } else if (event === 'SIGNED_OUT') {
+    user = null;
+    profile = null;
+    showAuth();
+  }
 });
 
 async function loadProfile(){
