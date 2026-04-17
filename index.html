@@ -467,7 +467,17 @@ window.matchMedia('(prefers-color-scheme:dark)').addEventListener('change',setLo
 // SUPABASE
 const sb = supabase.createClient(
   'https://yqtcixstlyihhhybnvwc.supabase.co',
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlxdGNpeHN0bHlpaGhoeWJudndjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYzMTA2NjMsImV4cCI6MjA5MTg4NjY2M30.93CECL1Q8Ngm4Tk1t5Fu3Q-Gj1Mae7ASDP53tWQBknA'
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlxdGNpeHN0bHlpaGhoeWJudndjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYzMTA2NjMsImV4cCI6MjA5MTg4NjY2M30.93CECL1Q8Ngm4Tk1t5Fu3Q-Gj1Mae7ASDP53tWQBknA',
+  {
+    auth: {
+      storage: window.localStorage,
+      autoRefreshToken: true,
+      persistSession: true,
+      detectSessionInUrl: true,
+      flowType: 'implicit',
+      lock: async (name, acquireTimeout, fn) => fn()
+    }
+  }
 );
 
 let user=null, profile=null, rsvpGameId=null, selRole_='player';
@@ -929,10 +939,15 @@ async function saveProfile() {
       photo_url:  photoUrl,
     };
     // Use upsert with explicit id to avoid lock conflicts
-    const { error } = await sb.from('profiles')
-      .upsert(updates, { onConflict: 'id' })
-      .select()
-      .single();
+    // Try update first, insert if not exists
+    let error;
+    const { error: updateErr } = await sb.from('profiles').update(updates).eq('id', user.id);
+    if (updateErr && updateErr.code === 'PGRST116') {
+      const { error: insertErr } = await sb.from('profiles').insert(updates);
+      error = insertErr;
+    } else {
+      error = updateErr;
+    }
     if (error) { toast(error.message, 'error'); return; }
     profile = { ...profile, ...updates };
     document.getElementById('u-name').textContent = updates.full_name || user.email;
