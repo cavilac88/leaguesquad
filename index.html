@@ -502,7 +502,13 @@ async function doLogin(){
   try {
     const{data,error}=await sb.auth.signInWithPassword({email,password:pass});
     if(error){errEl.textContent=error.message;return;}
-    if(!data?.session){errEl.textContent='No session returned — check your email is confirmed in Supabase.';}
+    if(data?.session?.user){
+      user=data.session.user;
+      await loadProfile();
+      showApp();
+    } else {
+      errEl.textContent='Could not sign in. Please try again.';
+    }
   } catch(e){
     errEl.textContent='Connection error: '+e.message;
   } finally {
