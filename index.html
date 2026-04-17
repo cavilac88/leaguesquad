@@ -2,6 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>League Squad</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -182,6 +185,10 @@ select.form-input{appearance:none;cursor:pointer;}
     <div id="pane-login">
       <div class="form-group"><label class="form-label">Email</label><input class="form-input" type="email" id="login-email" placeholder="you@example.com"></div>
       <div class="form-group"><label class="form-label">Password</label><input class="form-input" type="password" id="login-password" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"></div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
+        <input type="checkbox" id="remember-me" checked style="width:16px;height:16px;accent-color:var(--accent);cursor:pointer">
+        <label for="remember-me" style="font-size:13px;color:var(--text2);cursor:pointer">Remember me</label>
+      </div>
       <button class="btn-primary" onclick="doLogin()">Sign in</button>
       <div class="auth-error" id="login-err"></div>
       <div class="divider">or</div>
@@ -385,7 +392,7 @@ select.form-input{appearance:none;cursor:pointer;}
             <div class="form-group"><label class="form-label">Email</label><input class="form-input" type="email" id="prof-email" placeholder="your@email.com" disabled style="opacity:0.7;cursor:not-allowed"></div>
             <div class="form-group"><label class="form-label">Phone</label><input class="form-input" type="tel" id="prof-phone" placeholder="+1 (555) 000-0000"></div>
           </div>
-          <div class="form-group"><label class="form-label">Date of birth <span style="color:var(--text3);font-weight:400;text-transform:none;letter-spacing:0">(optional)</span></label><input class="form-input" type="date" id="prof-dob"></div>
+          <div class="form-group"><label class="form-label">Date of birth <span style="color:var(--text3);font-weight:400;text-transform:none;letter-spacing:0">(optional)</span></label><input class="form-input" type="date" id="prof-dob" autocomplete="off"></div>
         </div>
 
         <!-- ADDRESS -->
@@ -467,7 +474,8 @@ window.matchMedia('(prefers-color-scheme:dark)').addEventListener('change',setLo
 // SUPABASE
 const sb = supabase.createClient(
   'https://yqtcixstlyihhhybnvwc.supabase.co',
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlxdGNpeHN0bHlpaGhoeWJudndjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYzMTA2NjMsImV4cCI6MjA5MTg4NjY2M30.93CECL1Q8Ngm4Tk1t5Fu3Q-Gj1Mae7ASDP53tWQBknA'
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlxdGNpeHN0bHlpaGhoeWJudndjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYzMTA2NjMsImV4cCI6MjA5MTg4NjY2M30.93CECL1Q8Ngm4Tk1t5Fu3Q-Gj1Mae7ASDP53tWQBknA',
+  { auth: { persistSession: true, autoRefreshToken: true, storageKey: 'leaguesquad-auth' } }
 );
 
 let user=null, profile=null, rsvpGameId=null, selRole_='player';
@@ -493,6 +501,7 @@ function selRole(r){selRole_=r;document.getElementById('r-player').classList.tog
 async function doLogin(){
   const email=document.getElementById('login-email').value.trim();
   const pass=document.getElementById('login-password').value;
+  const remember=document.getElementById('remember-me')?.checked !== false;
   const errEl=document.getElementById('login-err');
   const btn=document.querySelector('#pane-login .btn-primary');
   errEl.textContent='';
@@ -503,22 +512,13 @@ async function doLogin(){
     const{data,error}=await sb.auth.signInWithPassword({email,password:pass});
     if(error){errEl.textContent=error.message;return;}
     if(data?.session?.user){
-      user=data.session.user;
-      console.log('Login OK:', user.email);
-      // Set basic profile from auth data directly
-      profile = {
-        full_name: user.user_metadata?.full_name || user.email,
-        first_name: user.user_metadata?.full_name?.split(' ')[0] || '',
-        role: user.user_metadata?.role || 'player',
-        email: user.email
-      };
-      document.getElementById('u-name').textContent = profile.full_name;
-      document.getElementById('u-role').textContent = profile.role;
-      document.getElementById('u-avatar').textContent = profile.full_name.charAt(0).toUpperCase();
-      document.getElementById('greeting').textContent = 'Welcome back, ' + (profile.first_name || user.email) + '!';
-      showApp();
-      // Load full profile in background
-      loadProfile().catch(e => console.warn('Profile bg load:', e.message));
+      // Store remember preference
+      localStorage.setItem('ls-remember', remember ? '1' : '0');
+      if(!remember) {
+        // Session only lasts browser session
+        sessionStorage.setItem('ls-session', JSON.stringify(data.session));
+      }
+      await enterApp(data.session.user);
     } else {
       errEl.textContent='Could not sign in. Please try again.';
     }
@@ -528,6 +528,22 @@ async function doLogin(){
     btn.textContent='Sign in';
     btn.disabled=false;
   }
+}
+
+async function enterApp(u) {
+  user = u;
+  profile = {
+    full_name: u.user_metadata?.full_name || u.email,
+    first_name: u.user_metadata?.full_name?.split(' ')[0] || u.email.split('@')[0],
+    role: u.user_metadata?.role || 'player',
+    email: u.email
+  };
+  document.getElementById('u-name').textContent = profile.full_name;
+  document.getElementById('u-role').textContent = profile.role;
+  document.getElementById('u-avatar').textContent = profile.full_name.charAt(0).toUpperCase();
+  document.getElementById('greeting').textContent = 'Welcome back, ' + profile.first_name + '!';
+  showApp();
+  loadProfile().catch(e => console.warn('Profile load:', e.message));
 }
 
 // SIGNUP
@@ -597,7 +613,12 @@ async function doUpdatePass(){
   }
 }
 
-async function doSignout(){await sb.auth.signOut();location.reload();}
+async function doSignout(){
+  localStorage.removeItem('ls-remember');
+  await sb.auth.signOut();
+  user = null; profile = null;
+  showAuth();
+}
 
 // AUTH STATE
 // Handle Supabase password recovery token in URL
@@ -613,6 +634,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 (async () => {
+  // Handle password recovery link
   const hash = window.location.hash;
   if (hash && hash.includes('type=recovery')) {
     isRecoveryMode = true;
@@ -628,15 +650,17 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // Check for existing session on page load (only if not typing)
-  const { data: { session } } = await sb.auth.getSession();
-  if (session?.user && !isRecoveryMode) {
-    user = session.user;
-    await loadProfile();
-    showApp();
-  } else {
-    showAuth();
+  // Check for existing session
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    if (session?.user) {
+      await enterApp(session.user);
+      return;
+    }
+  } catch(e) {
+    console.warn('Session check failed:', e.message);
   }
+  showAuth();
 })();
 
 sb.auth.onAuthStateChange(async(event, session) => {
@@ -647,14 +671,8 @@ sb.auth.onAuthStateChange(async(event, session) => {
     return;
   }
   if (isRecoveryMode) return;
-  if (event === 'SIGNED_IN' && session?.user) {
-    user = session.user;
-    await loadProfile();
-    showApp();
-    userIsTyping = false;
-  } else if (event === 'SIGNED_OUT') {
-    user = null;
-    profile = null;
+  if (event === 'SIGNED_OUT') {
+    user = null; profile = null;
     showAuth();
   }
 });
