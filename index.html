@@ -134,6 +134,8 @@ select.form-input{appearance:none;cursor:pointer;}
 .next-game-label{font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--accent);margin-bottom:6px;}
 .next-game-title{font-size:19px;font-weight:700;font-family:'Barlow',sans-serif;margin-bottom:3px;}
 .next-game-meta{font-size:13px;color:var(--text2);}
+.field-pos circle { transition: fill 0.15s, stroke 0.15s; }
+.field-pos:hover circle { stroke: rgba(255,127,80,0.9) !important; stroke-width: 2 !important; }
 .field-container{background:linear-gradient(180deg,#1a4a1a 0%,#0d2e0d 100%);border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:20px;margin-bottom:16px;}
 .positions-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:7px;}
 .position-slot{background:rgba(0,0,0,0.38);border:1px solid rgba(255,255,255,0.1);border-radius:9px;padding:9px 5px;text-align:center;cursor:pointer;transition:all 0.2s;min-height:66px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;}
@@ -423,13 +425,158 @@ select.form-input{appearance:none;cursor:pointer;}
 
       <!-- LINEUP -->
       <div class="page" id="page-lineup">
-        <div class="page-header"><div><div class="page-title">Lineup</div><div class="page-subtitle">Field positions & kicking order</div></div></div>
-        <div class="dash-grid">
-          <div class="card"><div class="card-title">Field positions</div><div class="field-container"><div class="positions-grid" id="pos-grid"></div></div></div>
-          <div class="card">
-            <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">Kicking order<button class="btn btn-ghost btn-sm" onclick="autoKick()">Auto-assign</button></div>
-            <div class="kicking-list" id="kick-list"><div class="empty-state"><p>Add players to roster first</p></div></div>
+        <div class="page-header">
+          <div>
+            <div id="team-pill-lineup" class="team-pill" style="display:none"></div>
+            <div class="page-title">Lineup</div>
+            <div class="page-subtitle">Field positions, rotation & kicking order</div>
           </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-ghost" onclick="openM('m-lineup-settings')">Game settings</button>
+            <button class="btn btn-accent" onclick="autoDistribute()">Auto-distribute</button>
+          </div>
+        </div>
+
+        <!-- GAME CONFIG SUMMARY -->
+        <div id="lineup-config-bar" class="card" style="margin-bottom:16px;padding:14px 20px;display:flex;align-items:center;gap:24px;flex-wrap:wrap">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:12px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:0.05em">Innings</span>
+            <span id="cfg-innings" style="font-size:18px;font-weight:700;font-family:'Barlow',sans-serif">6</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:12px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:0.05em">Players/inning</span>
+            <span id="cfg-per-inning" style="font-size:18px;font-weight:700;font-family:'Barlow',sans-serif">10</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:12px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:0.05em">Roster</span>
+            <span id="cfg-roster-count" style="font-size:18px;font-weight:700;font-family:'Barlow',sans-serif">—</span>
+          </div>
+          <div style="margin-left:auto;display:flex;gap:6px">
+            <select id="inning-selector" class="form-input" style="font-size:13px;padding:6px 10px;width:auto" onchange="renderInningView(parseInt(this.value))">
+              <option value="1">Inning 1</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 360px;gap:16px">
+          <!-- FIELD VISUAL -->
+          <div class="card">
+            <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">
+              Field positions — <span id="field-inning-label" style="color:var(--accent)">Inning 1</span>
+              <button class="btn btn-ghost btn-sm" onclick="clearInning()">Clear inning</button>
+            </div>
+            <!-- SVG KICKBALL FIELD -->
+            <div style="position:relative;width:100%;background:linear-gradient(180deg,#1a4a1a,#0d2e0d);border-radius:14px;overflow:hidden;padding:16px">
+              <svg id="field-svg" viewBox="0 0 400 340" style="width:100%;display:block">
+                <!-- Outfield grass -->
+                <ellipse cx="200" cy="200" rx="185" ry="155" fill="#1a4a1a"/>
+                <!-- Infield dirt -->
+                <path d="M200 280 L110 190 L200 100 L290 190 Z" fill="#8B6914" opacity="0.5"/>
+                <!-- Base lines -->
+                <line x1="200" y1="280" x2="110" y2="190" stroke="white" stroke-width="1.5" opacity="0.6"/>
+                <line x1="200" y1="280" x2="290" y2="190" stroke="white" stroke-width="1.5" opacity="0.6"/>
+                <line x1="110" y1="190" x2="200" y2="100" stroke="white" stroke-width="1.5" opacity="0.6"/>
+                <line x1="290" y1="190" x2="200" y2="100" stroke="white" stroke-width="1.5" opacity="0.6"/>
+                <!-- Foul lines -->
+                <line x1="200" y1="280" x2="30" y2="80" stroke="white" stroke-width="1" opacity="0.4" stroke-dasharray="4,4"/>
+                <line x1="200" y1="280" x2="370" y2="80" stroke="white" stroke-width="1" opacity="0.4" stroke-dasharray="4,4"/>
+                <!-- Bases -->
+                <rect x="193" y="93" width="14" height="14" rx="2" fill="white"/>
+                <rect x="103" y="183" width="14" height="14" rx="2" fill="white"/>
+                <rect x="283" y="183" width="14" height="14" rx="2" fill="white"/>
+                <!-- Home plate -->
+                <polygon points="200,292 192,282 196,272 204,272 208,282" fill="white"/>
+                <!-- Pitcher circle -->
+                <circle cx="200" cy="190" r="18" fill="none" stroke="white" stroke-width="1.5" opacity="0.5"/>
+                <!-- Position slots (clickable) -->
+                <!-- Pitcher -->
+                <g class="field-pos" id="fpos-Pitcher" onclick="clickFieldPos('Pitcher')" style="cursor:pointer">
+                  <circle cx="200" cy="190" r="22" fill="rgba(0,0,0,0.4)" stroke="rgba(255,255,255,0.2)" stroke-width="1.5"/>
+                  <text x="200" y="185" text-anchor="middle" fill="rgba(255,255,255,0.5)" font-size="8" font-family="Inter,sans-serif" font-weight="600">PITCHER</text>
+                  <text id="ftext-Pitcher" x="200" y="197" text-anchor="middle" fill="white" font-size="9" font-family="Inter,sans-serif" font-weight="700">+</text>
+                </g>
+                <!-- Catcher -->
+                <g class="field-pos" id="fpos-Catcher" onclick="clickFieldPos('Catcher')" style="cursor:pointer">
+                  <circle cx="200" cy="260" r="22" fill="rgba(0,0,0,0.4)" stroke="rgba(255,255,255,0.2)" stroke-width="1.5"/>
+                  <text x="200" y="255" text-anchor="middle" fill="rgba(255,255,255,0.5)" font-size="8" font-family="Inter,sans-serif" font-weight="600">CATCHER</text>
+                  <text id="ftext-Catcher" x="200" y="267" text-anchor="middle" fill="white" font-size="9" font-family="Inter,sans-serif" font-weight="700">+</text>
+                </g>
+                <!-- 1st Base -->
+                <g class="field-pos" id="fpos-1st Base" onclick="clickFieldPos('1st Base')" style="cursor:pointer">
+                  <circle cx="268" cy="210" r="22" fill="rgba(0,0,0,0.4)" stroke="rgba(255,255,255,0.2)" stroke-width="1.5"/>
+                  <text x="268" y="205" text-anchor="middle" fill="rgba(255,255,255,0.5)" font-size="8" font-family="Inter,sans-serif" font-weight="600">1ST</text>
+                  <text id="ftext-1st Base" x="268" y="217" text-anchor="middle" fill="white" font-size="9" font-family="Inter,sans-serif" font-weight="700">+</text>
+                </g>
+                <!-- 2nd Base -->
+                <g class="field-pos" id="fpos-2nd Base" onclick="clickFieldPos('2nd Base')" style="cursor:pointer">
+                  <circle cx="200" cy="145" r="22" fill="rgba(0,0,0,0.4)" stroke="rgba(255,255,255,0.2)" stroke-width="1.5"/>
+                  <text x="200" y="140" text-anchor="middle" fill="rgba(255,255,255,0.5)" font-size="8" font-family="Inter,sans-serif" font-weight="600">2ND</text>
+                  <text id="ftext-2nd Base" x="200" y="152" text-anchor="middle" fill="white" font-size="9" font-family="Inter,sans-serif" font-weight="700">+</text>
+                </g>
+                <!-- 3rd Base -->
+                <g class="field-pos" id="fpos-3rd Base" onclick="clickFieldPos('3rd Base')" style="cursor:pointer">
+                  <circle cx="132" cy="210" r="22" fill="rgba(0,0,0,0.4)" stroke="rgba(255,255,255,0.2)" stroke-width="1.5"/>
+                  <text x="132" y="205" text-anchor="middle" fill="rgba(255,255,255,0.5)" font-size="8" font-family="Inter,sans-serif" font-weight="600">3RD</text>
+                  <text id="ftext-3rd Base" x="132" y="217" text-anchor="middle" fill="white" font-size="9" font-family="Inter,sans-serif" font-weight="700">+</text>
+                </g>
+                <!-- Shortstop -->
+                <g class="field-pos" id="fpos-Shortstop" onclick="clickFieldPos('Shortstop')" style="cursor:pointer">
+                  <circle cx="155" cy="160" r="22" fill="rgba(0,0,0,0.4)" stroke="rgba(255,255,255,0.2)" stroke-width="1.5"/>
+                  <text x="155" y="155" text-anchor="middle" fill="rgba(255,255,255,0.5)" font-size="8" font-family="Inter,sans-serif" font-weight="600">SHORT</text>
+                  <text id="ftext-Shortstop" x="155" y="167" text-anchor="middle" fill="white" font-size="9" font-family="Inter,sans-serif" font-weight="700">+</text>
+                </g>
+                <!-- Left Field -->
+                <g class="field-pos" id="fpos-Left Field" onclick="clickFieldPos('Left Field')" style="cursor:pointer">
+                  <circle cx="80" cy="110" r="22" fill="rgba(0,0,0,0.4)" stroke="rgba(255,255,255,0.2)" stroke-width="1.5"/>
+                  <text x="80" y="105" text-anchor="middle" fill="rgba(255,255,255,0.5)" font-size="8" font-family="Inter,sans-serif" font-weight="600">LEFT</text>
+                  <text id="ftext-Left Field" x="80" y="117" text-anchor="middle" fill="white" font-size="9" font-family="Inter,sans-serif" font-weight="700">+</text>
+                </g>
+                <!-- Center Field -->
+                <g class="field-pos" id="fpos-Center Field" onclick="clickFieldPos('Center Field')" style="cursor:pointer">
+                  <circle cx="200" cy="70" r="22" fill="rgba(0,0,0,0.4)" stroke="rgba(255,255,255,0.2)" stroke-width="1.5"/>
+                  <text x="200" y="65" text-anchor="middle" fill="rgba(255,255,255,0.5)" font-size="8" font-family="Inter,sans-serif" font-weight="600">CENTER</text>
+                  <text id="ftext-Center Field" x="200" y="77" text-anchor="middle" fill="white" font-size="9" font-family="Inter,sans-serif" font-weight="700">+</text>
+                </g>
+                <!-- Right Field -->
+                <g class="field-pos" id="fpos-Right Field" onclick="clickFieldPos('Right Field')" style="cursor:pointer">
+                  <circle cx="320" cy="110" r="22" fill="rgba(0,0,0,0.4)" stroke="rgba(255,255,255,0.2)" stroke-width="1.5"/>
+                  <text x="320" y="105" text-anchor="middle" fill="rgba(255,255,255,0.5)" font-size="8" font-family="Inter,sans-serif" font-weight="600">RIGHT</text>
+                  <text id="ftext-Right Field" x="320" y="117" text-anchor="middle" fill="white" font-size="9" font-family="Inter,sans-serif" font-weight="700">+</text>
+                </g>
+                <!-- Rover -->
+                <g class="field-pos" id="fpos-Rover" onclick="clickFieldPos('Rover')" style="cursor:pointer">
+                  <circle cx="245" cy="155" r="22" fill="rgba(0,0,0,0.4)" stroke="rgba(255,255,255,0.2)" stroke-width="1.5"/>
+                  <text x="245" y="150" text-anchor="middle" fill="rgba(255,255,255,0.5)" font-size="8" font-family="Inter,sans-serif" font-weight="600">ROVER</text>
+                  <text id="ftext-Rover" x="245" y="162" text-anchor="middle" fill="white" font-size="9" font-family="Inter,sans-serif" font-weight="700">+</text>
+                </g>
+              </svg>
+            </div>
+          </div>
+
+          <!-- RIGHT PANEL: Players + Kicking Order -->
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <!-- AVAILABLE PLAYERS -->
+            <div class="card" style="flex:1">
+              <div class="card-title">Players this inning</div>
+              <div id="available-players-list" style="display:flex;flex-direction:column;gap:5px;max-height:260px;overflow-y:auto"></div>
+            </div>
+            <!-- KICKING ORDER -->
+            <div class="card">
+              <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">
+                Kicking order
+                <button class="btn btn-ghost btn-sm" onclick="autoKick()">Randomize</button>
+              </div>
+              <div class="kicking-list" id="kick-list" style="max-height:200px;overflow-y:auto">
+                <div class="empty-state"><p>Add players first</p></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ROTATION OVERVIEW -->
+        <div class="card" style="margin-top:16px">
+          <div class="card-title">Rotation overview — all innings</div>
+          <div id="rotation-table" style="overflow-x:auto"></div>
         </div>
       </div>
 
@@ -729,6 +876,40 @@ select.form-input{appearance:none;cursor:pointer;}
     <p style="font-size:14px;color:var(--text2);margin-bottom:16px">Select a team member to promote to co-captain. They can manage players, lineup and schedule, but cannot delete the team.</p>
     <div class="form-group"><label class="form-label">Team member</label><select class="form-input" id="cc-member-select"></select></div>
     <button class="btn btn-accent" style="width:100%;margin-top:8px" onclick="doAddCoCaptain()">Add co-captain</button>
+  </div>
+</div>
+
+
+<!-- Lineup Settings Modal -->
+<div class="modal-overlay" id="m-lineup-settings">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">Game settings</div><button class="modal-close" onclick="closeM('m-lineup-settings')">✕</button></div>
+    <div class="form-row-2">
+      <div class="form-group">
+        <label class="form-label">Number of innings</label>
+        <input class="form-input" type="number" id="cfg-innings-input" min="1" max="9" value="6">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Players per inning</label>
+        <input class="form-input" type="number" id="cfg-per-inning-input" min="1" max="15" value="10">
+      </div>
+    </div>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:16px">The system will rotate all players equitably across all innings.</p>
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-ghost" style="flex:1;justify-content:center" onclick="closeM('m-lineup-settings')">Cancel</button>
+      <button class="btn btn-accent" style="flex:2;justify-content:center" onclick="applyLineupSettings()">Apply</button>
+    </div>
+  </div>
+</div>
+
+<!-- Assign Position Modal -->
+<div class="modal-overlay" id="m-assign-pos">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Assign <span id="assign-pos-name" style="color:var(--accent)"></span></div>
+      <button class="modal-close" onclick="closeM('m-assign-pos')">✕</button>
+    </div>
+    <div id="assign-players-list" style="display:flex;flex-direction:column;gap:6px;max-height:400px;overflow-y:auto"></div>
   </div>
 </div>
 
@@ -1367,6 +1548,329 @@ document.addEventListener('click', e => {
   }
 });
 
+
+
+// ══ LINEUP SYSTEM ══
+const KB_POSITIONS = ['Pitcher','Catcher','1st Base','2nd Base','3rd Base','Shortstop','Left Field','Center Field','Right Field','Rover'];
+
+let lineupConfig = { innings: 6, perInning: 10 };
+let lineupData = {}; // { inning: { position: playerName } }
+let currentInning = 1;
+let rosterPlayers = [];
+let kickingOrder = [];
+
+async function loadLineup() {
+  // Load roster
+  const { data: players } = await sb.from('players').select('*').order('first_name');
+  rosterPlayers = players || [];
+
+  document.getElementById('cfg-roster-count').textContent = rosterPlayers.length;
+
+  // Load saved lineup config
+  const teamId = localStorage.getItem('ls-active-team-' + user.id);
+  if (teamId) {
+    const saved = localStorage.getItem('lineup-config-' + teamId);
+    if (saved) lineupConfig = JSON.parse(saved);
+    const savedData = localStorage.getItem('lineup-data-' + teamId);
+    if (savedData) lineupData = JSON.parse(savedData);
+    const savedKick = localStorage.getItem('kicking-order-' + teamId);
+    if (savedKick) kickingOrder = JSON.parse(savedKick);
+  }
+
+  // Update config display
+  updateConfigBar();
+  buildInningSelector();
+  renderInningView(currentInning);
+  renderKickingOrder();
+  renderRotationTable();
+}
+
+function updateConfigBar() {
+  document.getElementById('cfg-innings').textContent = lineupConfig.innings;
+  document.getElementById('cfg-per-inning').textContent = lineupConfig.perInning;
+  document.getElementById('cfg-innings-input').value = lineupConfig.innings;
+  document.getElementById('cfg-per-inning-input').value = lineupConfig.perInning;
+}
+
+function buildInningSelector() {
+  const sel = document.getElementById('inning-selector');
+  sel.innerHTML = '';
+  for (let i = 1; i <= lineupConfig.innings; i++) {
+    const opt = document.createElement('option');
+    opt.value = i;
+    opt.textContent = 'Inning ' + i;
+    if (i === currentInning) opt.selected = true;
+    sel.appendChild(opt);
+  }
+}
+
+function applyLineupSettings() {
+  lineupConfig.innings = parseInt(document.getElementById('cfg-innings-input').value) || 6;
+  lineupConfig.perInning = parseInt(document.getElementById('cfg-per-inning-input').value) || 10;
+  saveLineupConfig();
+  updateConfigBar();
+  buildInningSelector();
+  renderRotationTable();
+  closeM('m-lineup-settings');
+  toast('Game settings updated!', 'success');
+}
+
+function saveLineupConfig() {
+  const teamId = localStorage.getItem('ls-active-team-' + user.id);
+  if (teamId) {
+    localStorage.setItem('lineup-config-' + teamId, JSON.stringify(lineupConfig));
+    localStorage.setItem('lineup-data-' + teamId, JSON.stringify(lineupData));
+    localStorage.setItem('kicking-order-' + teamId, JSON.stringify(kickingOrder));
+  }
+}
+
+function renderInningView(inning) {
+  currentInning = inning;
+  document.getElementById('field-inning-label').textContent = 'Inning ' + inning;
+
+  const assignments = lineupData[inning] || {};
+
+  // Update field SVG positions
+  KB_POSITIONS.forEach(pos => {
+    const textEl = document.getElementById('ftext-' + pos);
+    const circleEl = document.getElementById('fpos-' + pos);
+    if (!textEl || !circleEl) return;
+
+    const playerName = assignments[pos];
+    if (playerName) {
+      // Get short name
+      const parts = playerName.split(' ');
+      const shortName = parts[0].length > 8 ? parts[0].substring(0,7)+'.' : parts[0];
+      textEl.textContent = shortName;
+      textEl.setAttribute('fill', 'white');
+      // Highlight filled position
+      const circle = circleEl.querySelector('circle');
+      if (circle) {
+        circle.setAttribute('fill', 'rgba(255,127,80,0.35)');
+        circle.setAttribute('stroke', 'rgba(255,127,80,0.8)');
+      }
+    } else {
+      textEl.textContent = '+';
+      textEl.setAttribute('fill', 'rgba(255,255,255,0.5)');
+      const circle = circleEl.querySelector('circle');
+      if (circle) {
+        circle.setAttribute('fill', 'rgba(0,0,0,0.4)');
+        circle.setAttribute('stroke', 'rgba(255,255,255,0.2)');
+      }
+    }
+  });
+
+  // Update available players list
+  renderAvailablePlayers(inning);
+}
+
+function renderAvailablePlayers(inning) {
+  const assignments = lineupData[inning] || {};
+  const assignedNames = Object.values(assignments);
+  const list = document.getElementById('available-players-list');
+
+  if (!rosterPlayers.length) {
+    list.innerHTML = '<div class="empty-state"><p>Add players to roster first</p></div>';
+    return;
+  }
+
+  list.innerHTML = rosterPlayers.map(p => {
+    const name = (p.first_name + ' ' + (p.last_name||'')).trim();
+    const isAssigned = assignedNames.includes(name);
+    const assignedPos = isAssigned ? Object.keys(assignments).find(k => assignments[k] === name) : null;
+
+    // Show preferences
+    const prefs = p.position_prefs ? JSON.parse(p.position_prefs) : [];
+    const prefText = prefs.length ? prefs.slice(0,2).join(', ') : 'No prefs';
+
+    return `<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:9px;background:${isAssigned?'var(--accent-t)':'var(--surface2)'};border:1px solid ${isAssigned?'var(--border)':'var(--border2)'}">
+      <div class="avatar" style="width:26px;height:26px;font-size:10px;flex-shrink:0">${p.first_name.charAt(0)}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${name}</div>
+        <div style="font-size:10px;color:var(--text3)">${isAssigned ? '📍 '+assignedPos : '🎯 '+prefText}</div>
+      </div>
+      ${isAssigned ? `<button class="btn btn-danger btn-sm" style="font-size:10px;padding:3px 7px" onclick="unassignPlayer('${name}',${inning})">✕</button>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function clickFieldPos(pos) {
+  // Open assign modal
+  document.getElementById('assign-pos-name').textContent = pos;
+  const assignments = lineupData[currentInning] || {};
+  const assignedNames = Object.values(assignments);
+
+  const list = document.getElementById('assign-players-list');
+  if (!rosterPlayers.length) {
+    list.innerHTML = '<div class="empty-state"><p>No players on roster</p></div>';
+    openM('m-assign-pos');
+    return;
+  }
+
+  list.innerHTML = rosterPlayers.map(p => {
+    const name = (p.first_name + ' ' + (p.last_name||'')).trim();
+    const isAssignedHere = assignments[pos] === name;
+    const isAssignedElse = !isAssignedHere && assignedNames.includes(name);
+    const prefs = p.position_prefs ? JSON.parse(p.position_prefs) : [];
+    const prefRank = prefs.indexOf(pos);
+    const prefLabel = prefRank === 0 ? '⭐ 1st choice' : prefRank === 1 ? '✓ 2nd choice' : prefRank === 2 ? '~ 3rd choice' : '';
+
+    return `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;background:${isAssignedHere?'var(--accent-t)':isAssignedElse?'var(--surface3)':'var(--surface2)'};border:1px solid ${isAssignedHere?'var(--border)':'var(--border2)'};cursor:${isAssignedElse?'not-allowed':'pointer'};opacity:${isAssignedElse?'0.5':'1'}"
+      onclick="${isAssignedElse?'':'assignPlayer(event,''+name+'',''+pos+'',' + currentInning + ')'}">
+      <div class="avatar" style="width:30px;height:30px;font-size:11px;flex-shrink:0">${p.first_name.charAt(0)}</div>
+      <div style="flex:1">
+        <div style="font-size:14px;font-weight:600">${name}</div>
+        <div style="font-size:11px;color:${prefRank>=0?'var(--accent)':'var(--text3)'}">${prefLabel || (isAssignedElse?'Already assigned':'Available')}</div>
+      </div>
+      ${isAssignedHere ? '<span style="font-size:11px;color:var(--accent);font-weight:600">Current</span>' : ''}
+    </div>`;
+  }).join('');
+
+  openM('m-assign-pos');
+}
+
+function assignPlayer(e, playerName, pos, inning) {
+  if (!lineupData[inning]) lineupData[inning] = {};
+  lineupData[inning][pos] = playerName;
+  saveLineupConfig();
+  closeM('m-assign-pos');
+  renderInningView(inning);
+  renderRotationTable();
+  toast(playerName.split(' ')[0] + ' → ' + pos, 'success');
+}
+
+function unassignPlayer(playerName, inning) {
+  if (!lineupData[inning]) return;
+  Object.keys(lineupData[inning]).forEach(pos => {
+    if (lineupData[inning][pos] === playerName) delete lineupData[inning][pos];
+  });
+  saveLineupConfig();
+  renderInningView(inning);
+  renderRotationTable();
+}
+
+function clearInning() {
+  lineupData[currentInning] = {};
+  saveLineupConfig();
+  renderInningView(currentInning);
+  renderRotationTable();
+  toast('Inning ' + currentInning + ' cleared', 'success');
+}
+
+// AUTO-DISTRIBUTE — respects preferences, ensures everyone plays
+function autoDistribute() {
+  if (!rosterPlayers.length) { toast('Add players to roster first', 'error'); return; }
+
+  const innings = lineupConfig.innings;
+  const perInning = lineupConfig.perInning;
+  const players = rosterPlayers.map(p => ({
+    name: (p.first_name + ' ' + (p.last_name||'')).trim(),
+    prefs: p.position_prefs ? JSON.parse(p.position_prefs) : [],
+    playCount: 0
+  }));
+
+  lineupData = {};
+
+  for (let i = 1; i <= innings; i++) {
+    lineupData[i] = {};
+    const positions = KB_POSITIONS.slice(0, perInning);
+
+    // Sort players by play count (least played first)
+    const sorted = [...players].sort((a, b) => a.playCount - b.playCount);
+    const inningPlayers = sorted.slice(0, perInning);
+
+    // Assign by preference
+    const assigned = new Set();
+    const posToFill = [...positions];
+
+    // First pass: assign preferred positions
+    inningPlayers.forEach(player => {
+      for (const pref of player.prefs) {
+        if (posToFill.includes(pref) && !assigned.has(pref)) {
+          lineupData[i][pref] = player.name;
+          assigned.add(pref);
+          player.playCount++;
+          break;
+        }
+      }
+    });
+
+    // Second pass: fill remaining positions
+    const unassignedPlayers = inningPlayers.filter(p => !Object.values(lineupData[i]).includes(p.name));
+    const unfilledPos = posToFill.filter(pos => !assigned.has(pos));
+
+    unassignedPlayers.forEach((player, idx) => {
+      if (idx < unfilledPos.length) {
+        lineupData[i][unfilledPos[idx]] = player.name;
+        player.playCount++;
+      }
+    });
+
+    // Update original players play count
+    players.forEach(p => {
+      const found = inningPlayers.find(ip => ip.name === p.name);
+      if (found) p.playCount = found.playCount;
+    });
+  }
+
+  saveLineupConfig();
+  renderInningView(currentInning);
+  renderRotationTable();
+  toast('Lineup auto-distributed across ' + innings + ' innings!', 'success');
+}
+
+// ROTATION TABLE
+function renderRotationTable() {
+  const container = document.getElementById('rotation-table');
+  if (!rosterPlayers.length) {
+    container.innerHTML = '<div class="empty-state"><p>Add players to see rotation</p></div>';
+    return;
+  }
+
+  const innings = lineupConfig.innings;
+  const players = rosterPlayers.map(p => (p.first_name + ' ' + (p.last_name||'')).trim());
+
+  let table = '<table class="data-table" style="min-width:600px"><thead><tr><th>Player</th>';
+  for (let i = 1; i <= innings; i++) table += '<th>Inn. ' + i + '</th>';
+  table += '<th>Total</th></tr></thead><tbody>';
+
+  players.forEach(name => {
+    let total = 0;
+    table += '<tr><td style="font-weight:600;white-space:nowrap">' + name + '</td>';
+    for (let i = 1; i <= innings; i++) {
+      const pos = lineupData[i] ? Object.keys(lineupData[i]).find(k => lineupData[i][k] === name) : null;
+      if (pos) total++;
+      table += '<td style="font-size:11px;color:' + (pos?'var(--accent)':'var(--text3)') + '">' + (pos || '—') + '</td>';
+    }
+    table += '<td><span class="badge ' + (total>0?'badge-green':'badge-gray') + '">' + total + '</span></td></tr>';
+  });
+
+  table += '</tbody></table>';
+  container.innerHTML = table;
+}
+
+// KICKING ORDER
+function renderKickingOrder() {
+  const list = document.getElementById('kick-list');
+  if (!kickingOrder.length) {
+    list.innerHTML = '<div class="empty-state"><p>Use Randomize to set kicking order</p></div>';
+    return;
+  }
+  list.innerHTML = kickingOrder.map((name, i) => `
+    <div class="kicking-item">
+      <div class="kick-num">${i+1}</div>
+      <div class="kick-name">${name}</div>
+    </div>`).join('');
+}
+
+async function autoKick() {
+  if (!rosterPlayers.length) { toast('Add players to roster first', 'error'); return; }
+  const names = rosterPlayers.map(p => (p.first_name + ' ' + (p.last_name||'')).trim());
+  kickingOrder = names.sort(() => Math.random() - 0.5);
+  saveLineupConfig();
+  renderKickingOrder();
+  toast('Kicking order randomized!', 'success');
+}
 
 // ── ONBOARDING ──
 let selectedTeamColor = '#FF7F50';
