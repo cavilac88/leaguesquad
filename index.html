@@ -410,7 +410,7 @@ select.form-input{appearance:none;cursor:pointer;}
 
       <!-- ROSTER -->
       <div class="page" id="page-roster">
-        <div class="page-header"><div><div class="page-title">Roster</div><div class="page-subtitle">Manage your team members</div></div><button class="btn btn-accent" onclick="openM('m-player')">+ Add player</button></div>
+        <div class="page-header"><div><div id="team-pill-roster" class="team-pill" style="display:none"></div><div class="page-title">Roster</div><div class="page-subtitle">Manage your team members</div></div><button class="btn btn-accent" onclick="openM('m-player')">+ Add player</button></div>
         <div class="card"><table class="data-table"><thead><tr><th>Player</th><th>Role</th><th>Sport</th><th>Location</th><th></th></tr></thead><tbody id="roster-body"><tr><td colspan="5"><div class="empty-state"><div class="empty-icon">👥</div><p>No players yet</p></div></td></tr></tbody></table></div>
       </div>
 
@@ -434,7 +434,7 @@ select.form-input{appearance:none;cursor:pointer;}
 
       <!-- MESSAGES -->
       <div class="page" id="page-messages">
-        <div class="page-header"><div><div class="page-title">Team Chat</div><div class="page-subtitle">Broadcast messages to the whole team</div></div></div>
+        <div class="page-header"><div><div id="team-pill-messages" class="team-pill" style="display:none"></div><div class="page-title">Team Chat</div><div class="page-subtitle">Broadcast messages to the whole team</div></div></div>
         <div class="card">
           <div class="messages-list" id="msg-list"><div class="empty-state"><div class="empty-icon">💬</div><p>No messages yet</p></div></div>
           <div style="display:flex;gap:8px"><input class="form-input" style="flex:1" type="text" id="msg-input" placeholder="Message the team..." onkeydown="if(event.key==='Enter')sendMsg()"><button class="btn btn-accent" onclick="sendMsg()">Send</button></div>
@@ -666,6 +666,65 @@ select.form-input{appearance:none;cursor:pointer;}
   </div>
 </div>
 
+
+<!-- Edit Team Modal -->
+<div class="modal-overlay" id="m-edit-team">
+  <div class="modal" style="max-width:540px">
+    <div class="modal-header"><div class="modal-title">Edit team</div><button class="modal-close" onclick="closeM('m-edit-team')">✕</button></div>
+    <input type="hidden" id="et-team-id">
+
+    <div class="form-group">
+      <label class="form-label">Team logo</label>
+      <div style="display:flex;align-items:center;gap:16px">
+        <div id="et-logo-preview" style="width:64px;height:64px;border-radius:14px;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;color:#fff;flex-shrink:0;overflow:hidden">?</div>
+        <div style="flex:1">
+          <input type="file" id="et-logo-file" accept="image/*" onchange="handleEditLogoUpload(this)" style="font-size:12px;color:var(--text2);width:100%">
+        </div>
+      </div>
+    </div>
+
+    <div class="form-group"><label class="form-label">Team name</label><input class="form-input" type="text" id="et-name" placeholder="All the Bases"></div>
+    <div class="form-row-2">
+      <div class="form-group"><label class="form-label">Sport</label><select class="form-input" id="et-sport"><option value="kickball">Kickball</option><option value="soccer">Soccer</option><option value="softball">Softball</option><option value="volleyball">Volleyball</option></select></div>
+      <div class="form-group"><label class="form-label">League (optional)</label><input class="form-input" type="text" id="et-league" placeholder="Pride Boston"></div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Team color</label>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px" id="et-color-picker">
+        <div onclick="selectEtColor('#FF7F50')" style="width:30px;height:30px;border-radius:50%;background:#FF7F50;cursor:pointer;border:3px solid transparent" data-color="#FF7F50"></div>
+        <div onclick="selectEtColor('#008080')" style="width:30px;height:30px;border-radius:50%;background:#008080;cursor:pointer;border:3px solid transparent" data-color="#008080"></div>
+        <div onclick="selectEtColor('#000080')" style="width:30px;height:30px;border-radius:50%;background:#000080;cursor:pointer;border:3px solid transparent" data-color="#000080"></div>
+        <div onclick="selectEtColor('#9400D3')" style="width:30px;height:30px;border-radius:50%;background:#9400D3;cursor:pointer;border:3px solid transparent" data-color="#9400D3"></div>
+        <div onclick="selectEtColor('#DC143C')" style="width:30px;height:30px;border-radius:50%;background:#DC143C;cursor:pointer;border:3px solid transparent" data-color="#DC143C"></div>
+        <div onclick="selectEtColor('#228B22')" style="width:30px;height:30px;border-radius:50%;background:#228B22;cursor:pointer;border:3px solid transparent" data-color="#228B22"></div>
+        <input type="color" id="et-custom-color" onchange="selectEtColor(this.value)" style="width:30px;height:30px;border-radius:50%;border:none;cursor:pointer;padding:0">
+      </div>
+    </div>
+
+    <div class="form-group"><label class="form-label">Website (optional)</label><input class="form-input" type="url" id="et-website" placeholder="https://yourteam.com"></div>
+    <div class="form-group">
+      <label class="form-label">Social links</label>
+      <div id="et-socials-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px"></div>
+      <button class="btn btn-ghost btn-sm" onclick="addEtSocialField()">+ Add social link</button>
+    </div>
+
+    <button class="btn btn-accent" style="width:100%;margin-top:8px;padding:13px" onclick="saveEditTeam()">Save changes</button>
+    <div class="auth-error" id="et-err"></div>
+  </div>
+</div>
+
+<!-- Add Co-captain Modal -->
+<div class="modal-overlay" id="m-cocaptain">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">Add co-captain</div><button class="modal-close" onclick="closeM('m-cocaptain')">✕</button></div>
+    <input type="hidden" id="cc-team-id">
+    <p style="font-size:14px;color:var(--text2);margin-bottom:16px">Select a team member to promote to co-captain. They can manage players, lineup and schedule, but cannot delete the team.</p>
+    <div class="form-group"><label class="form-label">Team member</label><select class="form-input" id="cc-member-select"></select></div>
+    <button class="btn btn-accent" style="width:100%;margin-top:8px" onclick="doAddCoCaptain()">Add co-captain</button>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -764,6 +823,7 @@ async function enterApp(u) {
   loadProfile().catch(e => console.warn('Profile load:', e.message));
   // Load sidebar team
   loadSidebarTeam().catch(e=>console.warn('sidebar team:', e.message));
+  updateTeamPills().catch(()=>{});
 
   // Check for join link first
   const params = new URLSearchParams(window.location.search);
@@ -943,6 +1003,7 @@ function nav(page){
   if(idx>=0)document.querySelectorAll('.nav-item')[idx].classList.add('active');
   if(window.innerWidth<=768)document.getElementById('sidebar').classList.remove('open');
   ({dashboard:loadDashboard,roster:loadRoster,schedule:loadSchedule,lineup:loadLineup,messages:loadMessages,teams:loadTeams,profile:loadProfilePage}[page]?.());
+  updateTeamPills().catch(()=>{});
 }
 
 function changeSport(sport) {
@@ -1575,6 +1636,209 @@ function copyLink(e, code) {
 }
 
 
+
+// ── TEAM PILL IN PAGES ──
+let activeTeamData = null;
+
+async function updateTeamPills() {
+  const teamId = localStorage.getItem('ls-active-team-' + user.id);
+  if (!teamId) return;
+  const { data: membership } = await sb.from('team_members')
+    .select('role, teams(id, name, color, initials, logo_url)')
+    .eq('team_id', teamId).eq('user_id', user.id).maybeSingle();
+  if (!membership?.teams) return;
+  activeTeamData = membership.teams;
+  const t = membership.teams;
+  const color = t.color || 'var(--accent)';
+  const logoHtml = t.logo_url
+    ? `<img src="${t.logo_url}" style="width:100%;height:100%;object-fit:cover;">`
+    : `<span>${t.initials || t.name.charAt(0)}</span>`;
+
+  ['roster','schedule','lineup','messages'].forEach(page => {
+    const pill = document.getElementById('team-pill-' + page);
+    if (!pill) return;
+    pill.style.display = 'inline-flex';
+    pill.style.borderColor = color;
+    pill.innerHTML = `
+      <div class="team-pill-logo" style="background:${color}">${logoHtml}</div>
+      <span style="color:${color}">${t.name}</span>
+    `;
+  });
+}
+
+// ── SETTINGS MENU ──
+function toggleSettingsMenu(e, teamId, teamName, role) {
+  e.stopPropagation();
+  // Close all other menus
+  document.querySelectorAll('.settings-menu').forEach(m => {
+    if (m.id !== 'menu-' + teamId) m.style.display = 'none';
+  });
+  const menu = document.getElementById('menu-' + teamId);
+  if (menu) menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+}
+
+document.addEventListener('click', () => {
+  document.querySelectorAll('.settings-menu').forEach(m => m.style.display = 'none');
+});
+
+// ── EDIT TEAM ──
+let etLogoDataUrl = null;
+let selectedEtColor = '#FF7F50';
+let etSocialCount = 0;
+
+async function openEditTeam(teamId) {
+  document.querySelectorAll('.settings-menu').forEach(m => m.style.display = 'none');
+  const { data: team } = await sb.from('teams').select('*').eq('id', teamId).single();
+  if (!team) return;
+
+  document.getElementById('et-team-id').value = teamId;
+  document.getElementById('et-name').value = team.name || '';
+  document.getElementById('et-sport').value = team.sport || 'kickball';
+  document.getElementById('et-league').value = team.league || '';
+  document.getElementById('et-website').value = team.website || '';
+
+  // Logo preview
+  const preview = document.getElementById('et-logo-preview');
+  preview.style.background = team.color || '#FF7F50';
+  if (team.logo_url) {
+    preview.innerHTML = `<img src="${team.logo_url}" style="width:100%;height:100%;object-fit:cover;border-radius:12px;">`;
+    etLogoDataUrl = team.logo_url;
+  } else {
+    preview.textContent = team.initials || team.name.charAt(0);
+  }
+
+  selectedEtColor = team.color || '#FF7F50';
+  selectEtColor(selectedEtColor);
+
+  // Socials
+  const socialsEl = document.getElementById('et-socials-list');
+  socialsEl.innerHTML = '';
+  etSocialCount = 0;
+  const socials = team.social_links ? JSON.parse(team.social_links) : [];
+  socials.forEach(s => {
+    etSocialCount++;
+    const div = document.createElement('div');
+    div.style.cssText = 'display:flex;gap:6px;align-items:center';
+    div.id = `et-social-row-${etSocialCount}`;
+    div.innerHTML = `
+      <input class="form-input" type="text" value="${s.name}" style="flex:0.8" id="et-social-name-${etSocialCount}">
+      <input class="form-input" type="url" value="${s.url}" style="flex:1.2" id="et-social-url-${etSocialCount}">
+      <button class="btn btn-danger btn-sm" onclick="document.getElementById('et-social-row-${etSocialCount}').remove()">✕</button>
+    `;
+    socialsEl.appendChild(div);
+  });
+
+  openM('m-edit-team');
+}
+
+function selectEtColor(color) {
+  selectedEtColor = color;
+  document.querySelectorAll('#et-color-picker [data-color]').forEach(el => {
+    el.style.border = el.dataset.color === color ? '3px solid var(--text)' : '3px solid transparent';
+  });
+  const preview = document.getElementById('et-logo-preview');
+  if (preview && !etLogoDataUrl?.startsWith('data:image')) preview.style.background = color;
+}
+
+function handleEditLogoUpload(input) {
+  if (!input.files?.[0]) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    etLogoDataUrl = e.target.result;
+    const preview = document.getElementById('et-logo-preview');
+    if (preview) preview.innerHTML = `<img src="${etLogoDataUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:12px;">`;
+  };
+  reader.readAsDataURL(input.files[0]);
+}
+
+function addEtSocialField() {
+  etSocialCount++;
+  const list = document.getElementById('et-socials-list');
+  const div = document.createElement('div');
+  div.style.cssText = 'display:flex;gap:6px;align-items:center';
+  div.id = `et-social-row-${etSocialCount}`;
+  div.innerHTML = `
+    <input class="form-input" type="text" placeholder="Platform" style="flex:0.8" id="et-social-name-${etSocialCount}">
+    <input class="form-input" type="url" placeholder="https://..." style="flex:1.2" id="et-social-url-${etSocialCount}">
+    <button class="btn btn-danger btn-sm" onclick="document.getElementById('et-social-row-${etSocialCount}').remove()">✕</button>
+  `;
+  list.appendChild(div);
+}
+
+function getEtSocialLinks() {
+  const links = [];
+  for (let i = 1; i <= etSocialCount; i++) {
+    const nameEl = document.getElementById(`et-social-name-${i}`);
+    const urlEl = document.getElementById(`et-social-url-${i}`);
+    if (nameEl && urlEl && nameEl.value.trim() && urlEl.value.trim()) {
+      links.push({ name: nameEl.value.trim(), url: urlEl.value.trim() });
+    }
+  }
+  return links;
+}
+
+async function saveEditTeam() {
+  const teamId = document.getElementById('et-team-id').value;
+  const name = document.getElementById('et-name').value.trim();
+  const errEl = document.getElementById('et-err');
+  errEl.textContent = '';
+  if (!name) { errEl.textContent = 'Team name is required'; return; }
+
+  const socials = getEtSocialLinks();
+  const initials = name.split(' ').map(w=>w[0]).join('').substring(0,3).toUpperCase();
+
+  const { error } = await sb.from('teams').update({
+    name, initials,
+    sport: document.getElementById('et-sport').value,
+    league: document.getElementById('et-league').value.trim() || null,
+    color: selectedEtColor,
+    logo_url: etLogoDataUrl || null,
+    website: document.getElementById('et-website').value.trim() || null,
+    social_links: socials.length ? JSON.stringify(socials) : null,
+  }).eq('id', teamId);
+
+  if (error) { errEl.textContent = error.message; return; }
+
+  closeM('m-edit-team');
+  etLogoDataUrl = null;
+  toast('Team updated!', 'success');
+  await loadSidebarTeam();
+  await updateTeamPills();
+  loadTeams();
+  loadActiveTeamBanner();
+}
+
+// ── CO-CAPTAIN ──
+async function openAddCoCaptain(teamId, teamName) {
+  document.querySelectorAll('.settings-menu').forEach(m => m.style.display = 'none');
+  document.getElementById('cc-team-id').value = teamId;
+  const { data } = await sb.from('team_members')
+    .select('user_id, display_name, role')
+    .eq('team_id', teamId)
+    .neq('user_id', user.id)
+    .neq('role', 'captain')
+    .neq('role', 'co-captain');
+
+  const select = document.getElementById('cc-member-select');
+  if (!data?.length) {
+    select.innerHTML = '<option disabled>No eligible members</option>';
+  } else {
+    select.innerHTML = data.map(m => `<option value="${m.user_id}">${m.display_name} (${m.role})</option>`).join('');
+  }
+  openM('m-cocaptain');
+}
+
+async function doAddCoCaptain() {
+  const teamId = document.getElementById('cc-team-id').value;
+  const memberId = document.getElementById('cc-member-select').value;
+  if (!memberId) return;
+  const { error } = await sb.from('team_members').update({ role: 'co-captain' }).eq('team_id', teamId).eq('user_id', memberId);
+  if (error) { toast(error.message, 'error'); return; }
+  closeM('m-cocaptain');
+  toast('Co-captain added!', 'success');
+  loadTeams();
+}
+
 // ── TEAM LOGO & COLOR EXTRACTION ──
 let ctLogoDataUrl = null;
 let ctSocialCount = 0;
@@ -1854,14 +2118,34 @@ async function loadTeams() {
       </div>` : ''}
 
       <!-- Actions -->
-      <div style="display:flex;gap:6px;flex-wrap:wrap;padding-top:12px;border-top:1px solid var(--border2)">
+      <div style="display:flex;gap:6px;align-items:center;padding-top:12px;border-top:1px solid var(--border2);position:relative">
         ${!isActive ? `<button class="btn btn-ghost btn-sm" onclick="switchActiveTeam('${t.id}')">Set as active</button>` : ''}
-        ${isCaptain ? `
-          <button class="btn btn-ghost btn-sm" onclick="openTransferModal('${t.id}','${t.name}')">Transfer captaincy</button>
-          <button class="btn btn-danger btn-sm" onclick="confirmDeleteTeam('${t.id}','${t.name}')">Delete team</button>
-        ` : `
-          <button class="btn btn-danger btn-sm" onclick="confirmLeaveTeam('${t.id}','${t.name}')">Leave team</button>
-        `}
+        <div style="margin-left:auto;position:relative">
+          <button class="btn btn-ghost btn-sm" onclick="toggleSettingsMenu(event,'${t.id}','${t.name}','${m.role}')">••• Settings</button>
+          <div id="menu-${t.id}" class="settings-menu" style="display:none">
+            <button class="settings-menu-item" onclick="openEditTeam('${t.id}')">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              Edit team
+            </button>
+            ${(isCaptain || m.role==='co-captain') ? `
+            <button class="settings-menu-item" onclick="openAddCoCaptain('${t.id}','${t.name}')">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+              Add co-captain
+            </button>` : ''}
+            ${isCaptain ? `
+            <button class="settings-menu-item" onclick="openTransferModal('${t.id}','${t.name}');toggleSettingsMenu(event,'${t.id}')">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+              Transfer captaincy
+            </button>
+            <div style="height:1px;background:var(--border2);margin:4px 0"></div>
+            <button class="settings-menu-item danger" onclick="confirmDeleteTeam('${t.id}','${t.name}')">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+              Delete team
+            </button>` : `
+            <div style="height:1px;background:var(--border2);margin:4px 0"></div>
+            <button class="settings-menu-item danger" onclick="confirmLeaveTeam('${t.id}','${t.name}')">Leave team</button>`}
+          </div>
+        </div>
       </div>
     </div>`;
   }).join('');
