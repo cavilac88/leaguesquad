@@ -360,9 +360,23 @@ select.form-input{appearance:none;cursor:pointer;}
       <button class="nav-item" onclick="nav('teams')"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>My Teams</button>
       <button class="nav-item" onclick="nav('profile')"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>My Profile</button>
       <div class="sidebar-bottom">
+        <!-- Active team in sidebar -->
+        <div id="sb-team-chip" style="display:none;margin-bottom:8px;border-radius:12px;overflow:hidden;border:1px solid var(--border2)">
+          <div style="padding:10px 12px;display:flex;align-items:center;gap:10px">
+            <div id="sb-team-logo" style="width:32px;height:32px;border-radius:8px;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0;overflow:hidden">?</div>
+            <div style="flex:1;min-width:0">
+              <div id="sb-team-name" style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">—</div>
+              <div id="sb-team-role" style="font-size:11px;color:var(--text3)">—</div>
+            </div>
+          </div>
+          <!-- Team switcher — only shown if multiple teams -->
+          <div id="sb-team-switcher" style="display:none;border-top:1px solid var(--border2);padding:6px 8px">
+            <select id="sb-team-select" class="form-input" style="font-size:12px;padding:5px 8px;border-radius:7px" onchange="switchActiveTeam(this.value)"></select>
+          </div>
+        </div>
         <div class="user-chip">
           <div class="avatar" id="u-avatar">?</div>
-          <div class="user-info"><div class="user-name" id="u-name">—</div><div class="user-role" id="u-role">—</div></div>
+          <div class="user-info"><div class="user-name" id="u-name">—</div><div class="user-role" id="u-role" style="font-size:11px;color:var(--text3)">—</div></div>
           <button class="icon-btn" onclick="doSignout()" title="Sign out"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></button>
         </div>
       </div>
@@ -517,7 +531,7 @@ select.form-input{appearance:none;cursor:pointer;}
             <button class="btn btn-accent" onclick="openM('m-create-team')">+ Create team</button>
           </div>
         </div>
-        <div id="teams-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px">
+        <div id="teams-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px">
           <div class="empty-state card"><div class="empty-icon">🏅</div><p>No teams yet</p></div>
         </div>
       </div>
@@ -634,6 +648,24 @@ select.form-input{appearance:none;cursor:pointer;}
   </div>
 </div>
 
+
+<!-- Transfer Captaincy Modal -->
+<div class="modal-overlay" id="m-transfer">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Transfer captaincy</div>
+      <button class="modal-close" onclick="closeM('m-transfer')">✕</button>
+    </div>
+    <input type="hidden" id="transfer-team-id">
+    <p style="font-size:14px;color:var(--text2);margin-bottom:16px">Select a team member to become the new captain of <strong id="transfer-team-name"></strong>. You will become a regular player.</p>
+    <div class="form-group">
+      <label class="form-label">New captain</label>
+      <select class="form-input" id="transfer-member-select"></select>
+    </div>
+    <button class="btn btn-accent" style="width:100%;margin-top:8px" onclick="doTransferCaptaincy()">Transfer captaincy</button>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -731,7 +763,7 @@ async function enterApp(u) {
   // Load full profile in background
   loadProfile().catch(e => console.warn('Profile load:', e.message));
   // Load sidebar team
-  loadSidebarTeam().catch(()=>{});
+  loadSidebarTeam().catch(e=>console.warn('sidebar team:', e.message));
 
   // Check for join link first
   const params = new URLSearchParams(window.location.search);
@@ -1478,16 +1510,7 @@ function updateSidebarTeam(team) {
   }
 }
 
-async function loadSidebarTeam() {
-  const teamId = localStorage.getItem('ls-active-team-' + user.id);
-  if (!teamId) return;
-  const { data: membership } = await sb.from('team_members').select('role, teams(name, color)').eq('team_id', teamId).eq('user_id', user.id).single();
-  if (!membership?.teams) return;
-  const roleEl = document.getElementById('u-role');
-  if (roleEl) {
-    roleEl.innerHTML = `<span style="color:var(--accent)">${membership.teams.name}</span> · ${membership.role}`;
-  }
-}
+// loadSidebarTeam replaced below
 
 // ── TEAMS PAGE ──
 async function loadTeams() {
@@ -1700,6 +1723,214 @@ async function loadActiveTeamBanner() {
         <button class="btn btn-ghost btn-sm" onclick="nav('teams')">View team</button>
       </div>
     </div>`;
+}
+
+
+// ── SIDEBAR TEAM ──
+let allMemberships = [];
+
+async function loadSidebarTeam() {
+  const { data: memberships } = await sb.from('team_members')
+    .select('role, team_id, teams(id, name, color, initials, logo_url, sport, league)')
+    .eq('user_id', user.id);
+
+  if (!memberships?.length) {
+    document.getElementById('sb-team-chip').style.display = 'none';
+    return;
+  }
+
+  allMemberships = memberships.filter(m => m.teams);
+  const activeTeamId = localStorage.getItem('ls-active-team-' + user.id) || allMemberships[0]?.team_id;
+  if (!activeTeamId) return;
+
+  // If no active team set, set first one
+  if (!localStorage.getItem('ls-active-team-' + user.id)) {
+    localStorage.setItem('ls-active-team-' + user.id, activeTeamId);
+  }
+
+  const active = allMemberships.find(m => m.team_id === activeTeamId) || allMemberships[0];
+  if (!active?.teams) return;
+
+  const t = active.teams;
+  const color = t.color || 'var(--accent)';
+
+  // Show team chip
+  const chip = document.getElementById('sb-team-chip');
+  chip.style.display = 'block';
+  chip.style.borderColor = color;
+
+  // Logo
+  const logoEl = document.getElementById('sb-team-logo');
+  logoEl.style.background = color;
+  if (t.logo_url) {
+    logoEl.innerHTML = `<img src="${t.logo_url}" style="width:100%;height:100%;object-fit:cover;">`;
+  } else {
+    logoEl.textContent = t.initials || t.name.charAt(0);
+  }
+
+  document.getElementById('sb-team-name').textContent = t.name;
+  document.getElementById('sb-team-role').textContent = active.role;
+
+  // Apply team color to accent
+  document.documentElement.style.setProperty('--accent', color);
+
+  // Team switcher — only if multiple teams
+  if (allMemberships.length > 1) {
+    const switcher = document.getElementById('sb-team-switcher');
+    const select = document.getElementById('sb-team-select');
+    switcher.style.display = 'block';
+    select.innerHTML = allMemberships.map(m =>
+      `<option value="${m.team_id}" ${m.team_id === activeTeamId ? 'selected' : ''}>${m.teams?.name} (${m.role})</option>`
+    ).join('');
+  }
+}
+
+async function switchActiveTeam(teamId) {
+  const membership = allMemberships.find(m => m.team_id === teamId);
+  if (!membership) return;
+  localStorage.setItem('ls-active-team-' + user.id, teamId);
+  localStorage.setItem('ls-active-role-' + user.id, membership.role);
+  await loadSidebarTeam();
+  loadActiveTeamBanner();
+  toast('Switched to ' + membership.teams?.name, 'success');
+}
+
+// ── ENHANCED TEAMS PAGE ──
+async function loadTeams() {
+  const { data: memberships } = await sb.from('team_members')
+    .select('role, team_id, teams(*)')
+    .eq('user_id', user.id);
+
+  const container = document.getElementById('teams-list');
+  if (!memberships?.length) {
+    container.innerHTML = `<div class="card" style="grid-column:1/-1"><div class="empty-state"><div class="empty-icon">🏅</div><p>No teams yet — create or join one!</p></div></div>`;
+    return;
+  }
+
+  const activeTeamId = localStorage.getItem('ls-active-team-' + user.id);
+
+  container.innerHTML = memberships.filter(m=>m.teams).map(m => {
+    const t = m.teams;
+    const isActive = t.id === activeTeamId;
+    const color = t.color || '#FF7F50';
+    const isCaptain = m.role === 'captain';
+    const socials = t.social_links ? JSON.parse(t.social_links) : [];
+
+    return `
+    <div class="card" style="border:${isActive?'2px solid '+color:'1px solid var(--border2)'};position:relative">
+      ${isActive ? `<div style="position:absolute;top:10px;right:10px;font-size:10px;font-weight:700;color:${color};text-transform:uppercase;letter-spacing:0.06em;background:var(--surface);padding:2px 8px;border-radius:20px;border:1px solid ${color}">Active</div>` : ''}
+
+      <!-- Header -->
+      <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px">
+        <div style="width:56px;height:56px;border-radius:14px;background:${color};display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;color:#fff;flex-shrink:0;overflow:hidden">
+          ${t.logo_url ? `<img src="${t.logo_url}" style="width:100%;height:100%;object-fit:cover;">` : (t.initials||t.name.charAt(0))}
+        </div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:16px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.name}</div>
+          <div style="font-size:12px;color:var(--text2)">${t.sport}${t.league?' · '+t.league:''}</div>
+          <span class="badge ${isCaptain?'badge-accent':'badge-gray'}" style="margin-top:4px">${m.role}</span>
+        </div>
+      </div>
+
+      <!-- Code + invite link -->
+      <div style="background:var(--surface2);border-radius:10px;padding:10px 12px;margin-bottom:12px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+          <span style="font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:0.05em">Team code</span>
+          <button class="btn btn-ghost btn-sm" onclick="copyCode(event,'${t.code}')">Copy code</button>
+        </div>
+        <div style="font-family:'DM Mono',monospace;font-size:20px;font-weight:700;color:${color};letter-spacing:0.1em">${t.code}</div>
+        ${isCaptain ? `
+        <div style="margin-top:8px;display:flex;gap:6px;align-items:center">
+          <input class="form-input" readonly value="cavilac88.github.io/leaguesquad/?join=${t.code}" style="font-size:11px;padding:5px 8px;flex:1">
+          <button class="btn btn-ghost btn-sm" onclick="copyLink(event,'${t.code}')">Copy link</button>
+        </div>` : ''}
+      </div>
+
+      <!-- Website + socials -->
+      ${t.website || socials.length ? `
+      <div style="margin-bottom:12px">
+        ${t.website ? `<a href="${t.website}" target="_blank" style="font-size:13px;color:${color};display:block;margin-bottom:4px">${t.website}</a>` : ''}
+        ${socials.map(s=>`<a href="${s.url}" target="_blank" style="font-size:12px;color:var(--text2);display:block">${s.name}</a>`).join('')}
+      </div>` : ''}
+
+      <!-- Actions -->
+      <div style="display:flex;gap:6px;flex-wrap:wrap;padding-top:12px;border-top:1px solid var(--border2)">
+        ${!isActive ? `<button class="btn btn-ghost btn-sm" onclick="switchActiveTeam('${t.id}')">Set as active</button>` : ''}
+        ${isCaptain ? `
+          <button class="btn btn-ghost btn-sm" onclick="openTransferModal('${t.id}','${t.name}')">Transfer captaincy</button>
+          <button class="btn btn-danger btn-sm" onclick="confirmDeleteTeam('${t.id}','${t.name}')">Delete team</button>
+        ` : `
+          <button class="btn btn-danger btn-sm" onclick="confirmLeaveTeam('${t.id}','${t.name}')">Leave team</button>
+        `}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── LEAVE / DELETE / TRANSFER ──
+async function confirmLeaveTeam(teamId, teamName) {
+  if (!confirm(`Leave "${teamName}"? You will need a new invite code to rejoin.`)) return;
+  const { error } = await sb.from('team_members').delete().eq('team_id', teamId).eq('user_id', user.id);
+  if (error) { toast(error.message, 'error'); return; }
+  // If this was active team, clear it
+  if (localStorage.getItem('ls-active-team-' + user.id) === teamId) {
+    localStorage.removeItem('ls-active-team-' + user.id);
+    localStorage.removeItem('ls-active-role-' + user.id);
+  }
+  toast('Left ' + teamName, 'success');
+  await loadSidebarTeam();
+  loadTeams();
+  loadActiveTeamBanner();
+}
+
+async function confirmDeleteTeam(teamId, teamName) {
+  if (!confirm(`Delete "${teamName}"? This will remove the team for ALL members. This cannot be undone.`)) return;
+  const { error } = await sb.from('teams').delete().eq('id', teamId);
+  if (error) { toast(error.message, 'error'); return; }
+  if (localStorage.getItem('ls-active-team-' + user.id) === teamId) {
+    localStorage.removeItem('ls-active-team-' + user.id);
+    localStorage.removeItem('ls-active-role-' + user.id);
+  }
+  toast('Team deleted', 'success');
+  await loadSidebarTeam();
+  loadTeams();
+  loadActiveTeamBanner();
+}
+
+function openTransferModal(teamId, teamName) {
+  openM('m-transfer');
+  document.getElementById('transfer-team-id').value = teamId;
+  document.getElementById('transfer-team-name').textContent = teamName;
+  loadTeamMembersForTransfer(teamId);
+}
+
+async function loadTeamMembersForTransfer(teamId) {
+  const { data } = await sb.from('team_members')
+    .select('user_id, display_name, role')
+    .eq('team_id', teamId)
+    .neq('user_id', user.id);
+  const select = document.getElementById('transfer-member-select');
+  if (!data?.length) {
+    select.innerHTML = '<option disabled>No other members in this team</option>';
+    return;
+  }
+  select.innerHTML = data.map(m => `<option value="${m.user_id}">${m.display_name} (${m.role})</option>`).join('');
+}
+
+async function doTransferCaptaincy() {
+  const teamId = document.getElementById('transfer-team-id').value;
+  const newCaptainId = document.getElementById('transfer-member-select').value;
+  if (!newCaptainId) return;
+
+  // Update new captain
+  await sb.from('team_members').update({ role: 'captain' }).eq('team_id', teamId).eq('user_id', newCaptainId);
+  // Downgrade current captain to player
+  await sb.from('team_members').update({ role: 'player' }).eq('team_id', teamId).eq('user_id', user.id);
+
+  closeM('m-transfer');
+  toast('Captaincy transferred!', 'success');
+  await loadSidebarTeam();
+  loadTeams();
 }
 
 // COUNTRY AUTOCOMPLETE
