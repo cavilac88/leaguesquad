@@ -378,6 +378,9 @@ select.form-input{appearance:none;cursor:pointer;}
           <div class="stat-card"><div class="stat-label">Next game</div><div class="stat-value" id="s-next">—</div><div class="stat-sub" id="s-next-sub">days away</div></div>
           <div class="stat-card"><div class="stat-label">Messages</div><div class="stat-value" id="s-msgs">—</div><div class="stat-sub">in team chat</div></div>
         </div>
+        <!-- Active team banner -->
+        <div id="active-team-banner" style="display:none;margin-bottom:16px"></div>
+
         <div class="dash-grid">
           <div id="next-game-section"></div>
           <div class="card"><div class="card-title">Quick actions</div>
@@ -561,26 +564,60 @@ select.form-input{appearance:none;cursor:pointer;}
 
 <!-- Create Team Modal -->
 <div class="modal-overlay" id="m-create-team">
-  <div class="modal">
+  <div class="modal" style="max-width:540px">
     <div class="modal-header"><div class="modal-title">Create a team</div><button class="modal-close" onclick="closeM('m-create-team')">✕</button></div>
-    <div class="form-group"><label class="form-label">Team name</label><input class="form-input" type="text" id="ct-name" placeholder="All the Bases"></div>
+    
+    <!-- Logo upload -->
+    <div class="form-group">
+      <label class="form-label">Team logo</label>
+      <div style="display:flex;align-items:center;gap:16px">
+        <div id="ct-logo-preview" style="width:64px;height:64px;border-radius:14px;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;color:#fff;flex-shrink:0;overflow:hidden">?</div>
+        <div style="flex:1">
+          <input type="file" id="ct-logo-file" accept="image/*" onchange="handleTeamLogoUpload(this)" style="font-size:12px;color:var(--text2);width:100%">
+          <div style="font-size:11px;color:var(--text3);margin-top:4px">PNG, JPG or SVG. Logo will show as initials if not uploaded.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Suggested colors from logo -->
+    <div class="form-group" id="ct-suggested-colors-wrap" style="display:none">
+      <label class="form-label">Colors from your logo — pick one</label>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px" id="ct-suggested-colors"></div>
+    </div>
+
+    <!-- Manual color picker -->
+    <div class="form-group">
+      <label class="form-label">Team color <span id="ct-color-label" style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text3)">(or pick manually)</span></label>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px" id="ct-color-picker">
+        <div onclick="selectCtColor('#FF7F50')" style="width:30px;height:30px;border-radius:50%;background:#FF7F50;cursor:pointer;border:3px solid var(--text)" data-color="#FF7F50"></div>
+        <div onclick="selectCtColor('#008080')" style="width:30px;height:30px;border-radius:50%;background:#008080;cursor:pointer;border:3px solid transparent" data-color="#008080"></div>
+        <div onclick="selectCtColor('#000080')" style="width:30px;height:30px;border-radius:50%;background:#000080;cursor:pointer;border:3px solid transparent" data-color="#000080"></div>
+        <div onclick="selectCtColor('#9400D3')" style="width:30px;height:30px;border-radius:50%;background:#9400D3;cursor:pointer;border:3px solid transparent" data-color="#9400D3"></div>
+        <div onclick="selectCtColor('#DC143C')" style="width:30px;height:30px;border-radius:50%;background:#DC143C;cursor:pointer;border:3px solid transparent" data-color="#DC143C"></div>
+        <div onclick="selectCtColor('#228B22')" style="width:30px;height:30px;border-radius:50%;background:#228B22;cursor:pointer;border:3px solid transparent" data-color="#228B22"></div>
+        <div onclick="selectCtColor('#FF8C00')" style="width:30px;height:30px;border-radius:50%;background:#FF8C00;cursor:pointer;border:3px solid transparent" data-color="#FF8C00"></div>
+        <input type="color" id="ct-custom-color" onchange="selectCtColor(this.value)" style="width:30px;height:30px;border-radius:50%;border:none;cursor:pointer;padding:0" title="Custom color">
+      </div>
+    </div>
+
+    <div class="form-group"><label class="form-label">Team name</label><input class="form-input" type="text" id="ct-name" placeholder="All the Bases" oninput="updateCtPreview()"></div>
     <div class="form-row-2">
       <div class="form-group"><label class="form-label">Sport</label><select class="form-input" id="ct-sport"><option value="kickball">Kickball</option><option value="soccer">Soccer</option><option value="softball">Softball</option><option value="volleyball">Volleyball</option></select></div>
       <div class="form-group"><label class="form-label">League (optional)</label><input class="form-input" type="text" id="ct-league" placeholder="Pride Boston"></div>
     </div>
+
+    <!-- Social links -->
     <div class="form-group">
-      <label class="form-label">Team color</label>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px" id="ct-color-picker">
-        <div onclick="selectCtColor('#FF7F50')" style="width:32px;height:32px;border-radius:50%;background:#FF7F50;cursor:pointer;border:3px solid #333" data-color="#FF7F50"></div>
-        <div onclick="selectCtColor('#008080')" style="width:32px;height:32px;border-radius:50%;background:#008080;cursor:pointer;border:3px solid transparent" data-color="#008080"></div>
-        <div onclick="selectCtColor('#000080')" style="width:32px;height:32px;border-radius:50%;background:#000080;cursor:pointer;border:3px solid transparent" data-color="#000080"></div>
-        <div onclick="selectCtColor('#9400D3')" style="width:32px;height:32px;border-radius:50%;background:#9400D3;cursor:pointer;border:3px solid transparent" data-color="#9400D3"></div>
-        <div onclick="selectCtColor('#DC143C')" style="width:32px;height:32px;border-radius:50%;background:#DC143C;cursor:pointer;border:3px solid transparent" data-color="#DC143C"></div>
-        <div onclick="selectCtColor('#228B22')" style="width:32px;height:32px;border-radius:50%;background:#228B22;cursor:pointer;border:3px solid transparent" data-color="#228B22"></div>
-        <input type="color" id="ct-custom-color" onchange="selectCtColor(this.value)" style="width:32px;height:32px;border-radius:50%;border:none;cursor:pointer;padding:0" title="Custom color">
-      </div>
+      <label class="form-label">Website (optional)</label>
+      <input class="form-input" type="url" id="ct-website" placeholder="https://yourteam.com">
     </div>
-    <button class="btn btn-accent" style="width:100%;margin-top:8px" onclick="createTeamModal()">Create team</button>
+    <div class="form-group">
+      <label class="form-label">Social links <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text3)">(optional — add as many as you want)</span></label>
+      <div id="ct-socials-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px"></div>
+      <button class="btn btn-ghost btn-sm" onclick="addSocialField()">+ Add social link</button>
+    </div>
+
+    <button class="btn btn-accent" style="width:100%;margin-top:8px;padding:13px" onclick="createTeamModal()">Create team</button>
     <div class="auth-error" id="ct-err"></div>
   </div>
 </div>
@@ -888,6 +925,7 @@ function toggleSidebar(){document.getElementById('sidebar').classList.toggle('op
 
 // DASHBOARD
 async function loadDashboard(){
+  loadActiveTeamBanner().catch(()=>{});
   const[r1,r2,r3,r4]=await Promise.all([
     sb.from('players').select('*',{count:'exact',head:true}),
     sb.from('games').select('*',{count:'exact',head:true}),
@@ -1323,6 +1361,8 @@ async function createTeamModal() {
   const name = document.getElementById('ct-name').value.trim();
   const sport = document.getElementById('ct-sport').value;
   const league = document.getElementById('ct-league').value.trim();
+  const website = document.getElementById('ct-website')?.value.trim() || null;
+  const socials = getSocialLinks();
   const errEl = document.getElementById('ct-err');
   errEl.textContent = '';
   if (!name) { errEl.textContent = 'Team name is required'; return; }
@@ -1332,8 +1372,11 @@ async function createTeamModal() {
 
   const { data: team, error } = await sb.from('teams').insert({
     name, sport, league: league || null,
-    code, color: selectedCtColor,
-    initials, created_by: user.id
+    code, color: selectedCtColor, initials,
+    logo_url: ctLogoDataUrl || null,
+    website: website || null,
+    social_links: socials.length ? JSON.stringify(socials) : null,
+    created_by: user.id
   }).select().single();
 
   if (error) { errEl.textContent = error.message; return; }
@@ -1345,10 +1388,15 @@ async function createTeamModal() {
 
   closeM('m-create-team');
   document.getElementById('ct-name').value = '';
+  ctLogoDataUrl = null; ctSocialCount = 0;
+  document.getElementById('ct-socials-list').innerHTML = '';
+  document.getElementById('ct-suggested-colors-wrap').style.display = 'none';
   localStorage.setItem('ls-active-team-' + user.id, team.id);
+  localStorage.setItem('ls-active-role-' + user.id, 'captain');
   updateSidebarTeam(team);
   showTeamCreatedToast(team);
   loadTeams();
+  loadActiveTeamBanner();
 }
 
 function showTeamCreatedToast(team) {
@@ -1501,6 +1549,157 @@ function copyLink(e, code) {
   e.stopPropagation();
   navigator.clipboard.writeText('https://cavilac88.github.io/leaguesquad/?join=' + code);
   toast('Invite link copied!', 'success');
+}
+
+
+// ── TEAM LOGO & COLOR EXTRACTION ──
+let ctLogoDataUrl = null;
+let ctSocialCount = 0;
+
+function updateCtPreview() {
+  const name = document.getElementById('ct-name').value.trim();
+  const preview = document.getElementById('ct-logo-preview');
+  if (!preview) return;
+  if (ctLogoDataUrl) {
+    preview.innerHTML = `<img src="${ctLogoDataUrl}" style="width:100%;height:100%;object-fit:cover;">`;
+  } else {
+    const initials = name.split(' ').map(w=>w[0]).join('').substring(0,3).toUpperCase() || '?';
+    preview.textContent = initials;
+    preview.style.background = selectedCtColor;
+  }
+}
+
+function handleTeamLogoUpload(input) {
+  if (!input.files?.[0]) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    ctLogoDataUrl = e.target.result;
+    // Show preview
+    const preview = document.getElementById('ct-logo-preview');
+    if (preview) preview.innerHTML = `<img src="${ctLogoDataUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:12px;">`;
+    // Extract colors
+    extractColors(ctLogoDataUrl);
+  };
+  reader.readAsDataURL(input.files[0]);
+}
+
+function extractColors(dataUrl) {
+  const img = new Image();
+  img.onload = () => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 50; canvas.height = 50;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0, 50, 50);
+    const data = ctx.getImageData(0, 0, 50, 50).data;
+
+    // Sample pixels and find dominant colors
+    const colorMap = {};
+    for (let i = 0; i < data.length; i += 16) {
+      const r = Math.round(data[i] / 32) * 32;
+      const g = Math.round(data[i+1] / 32) * 32;
+      const b = Math.round(data[i+2] / 32) * 32;
+      const a = data[i+3];
+      if (a < 128) continue; // skip transparent
+      // Skip near-white and near-black
+      if (r > 220 && g > 220 && b > 220) continue;
+      if (r < 30 && g < 30 && b < 30) continue;
+      const key = `${r},${g},${b}`;
+      colorMap[key] = (colorMap[key] || 0) + 1;
+    }
+
+    // Get top 4 colors
+    const sorted = Object.entries(colorMap).sort((a,b) => b[1]-a[1]).slice(0,4);
+    if (!sorted.length) return;
+
+    const suggestedWrap = document.getElementById('ct-suggested-colors-wrap');
+    const suggestedList = document.getElementById('ct-suggested-colors');
+    const label = document.getElementById('ct-color-label');
+    if (!suggestedWrap || !suggestedList) return;
+
+    suggestedList.innerHTML = sorted.map(([rgb]) => {
+      const hex = '#' + rgb.split(',').map(v => parseInt(v).toString(16).padStart(2,'0')).join('');
+      return `<div onclick="selectCtColor('${hex}')" style="width:36px;height:36px;border-radius:50%;background:${hex};cursor:pointer;border:3px solid transparent;transition:border 0.15s" data-color="${hex}" title="${hex}"></div>`;
+    }).join('');
+
+    suggestedWrap.style.display = 'block';
+    if (label) label.textContent = '(or pick manually)';
+
+    // Auto-select first suggested color
+    const firstHex = '#' + sorted[0][0].split(',').map(v => parseInt(v).toString(16).padStart(2,'0')).join('');
+    selectCtColor(firstHex);
+  };
+  img.src = dataUrl;
+}
+
+function addSocialField() {
+  ctSocialCount++;
+  const list = document.getElementById('ct-socials-list');
+  const div = document.createElement('div');
+  div.style.cssText = 'display:flex;gap:6px;align-items:center';
+  div.id = `social-row-${ctSocialCount}`;
+  div.innerHTML = `
+    <input class="form-input" type="text" placeholder="Platform (e.g. Instagram)" style="flex:0.8" id="social-name-${ctSocialCount}">
+    <input class="form-input" type="url" placeholder="https://..." style="flex:1.2" id="social-url-${ctSocialCount}">
+    <button class="btn btn-danger btn-sm" onclick="document.getElementById('social-row-${ctSocialCount}').remove()">✕</button>
+  `;
+  list.appendChild(div);
+}
+
+function getSocialLinks() {
+  const links = [];
+  for (let i = 1; i <= ctSocialCount; i++) {
+    const nameEl = document.getElementById(`social-name-${i}`);
+    const urlEl = document.getElementById(`social-url-${i}`);
+    if (nameEl && urlEl && nameEl.value.trim() && urlEl.value.trim()) {
+      links.push({ name: nameEl.value.trim(), url: urlEl.value.trim() });
+    }
+  }
+  return links;
+}
+
+// ── ACTIVE TEAM BANNER ON DASHBOARD ──
+async function loadActiveTeamBanner() {
+  const teamId = localStorage.getItem('ls-active-team-' + user.id);
+  const banner = document.getElementById('active-team-banner');
+  if (!banner) return;
+  if (!teamId) {
+    banner.style.display = 'block';
+    banner.innerHTML = `
+      <div style="background:var(--surface);border:1px solid var(--border2);border-radius:14px;padding:18px;display:flex;align-items:center;gap:16px;justify-content:space-between">
+        <div style="font-size:14px;color:var(--text2)">You are not part of any team yet.</div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-ghost btn-sm" onclick="openM('m-join-team')">Join team</button>
+          <button class="btn btn-accent btn-sm" onclick="openM('m-create-team')">Create team</button>
+        </div>
+      </div>`;
+    return;
+  }
+
+  const { data: membership } = await sb.from('team_members')
+    .select('role, teams(*)')
+    .eq('team_id', teamId)
+    .eq('user_id', user.id)
+    .maybeSingle();
+
+  if (!membership?.teams) return;
+  const t = membership.teams;
+  const color = t.color || 'var(--accent)';
+
+  banner.style.display = 'block';
+  banner.innerHTML = `
+    <div style="background:var(--surface);border:2px solid ${color};border-radius:14px;padding:18px;display:flex;align-items:center;gap:16px">
+      <div style="width:52px;height:52px;border-radius:12px;background:${color};display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:#fff;flex-shrink:0;overflow:hidden">
+        ${t.logo_url ? `<img src="${t.logo_url}" style="width:100%;height:100%;object-fit:cover;">` : (t.initials||t.name.charAt(0))}
+      </div>
+      <div style="flex:1">
+        <div style="font-size:16px;font-weight:700">${t.name}</div>
+        <div style="font-size:12px;color:var(--text2)">${t.sport}${t.league?' · '+t.league:''} · <span style="color:${color};font-weight:600">${membership.role}</span></div>
+        ${t.website ? `<a href="${t.website}" target="_blank" style="font-size:12px;color:var(--accent)">${t.website}</a>` : ''}
+      </div>
+      <div style="display:flex;gap:6px">
+        <button class="btn btn-ghost btn-sm" onclick="nav('teams')">View team</button>
+      </div>
+    </div>`;
 }
 
 // COUNTRY AUTOCOMPLETE
