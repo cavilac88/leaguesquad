@@ -14,20 +14,22 @@
 
 @media (prefers-color-scheme: light) {
   :root {
-    --bg:#F5F6FA;--surface:#FFFFFF;--surface2:#F0F1F7;--surface3:#E4E6F0;
-    --border:rgba(0,0,128,0.12);--border2:rgba(0,0,0,0.08);
-    --text:#0D0D2B;--text2:#4A4A6A;--text3:#9A9AB0;
-    --accent:#000080;--accent2:#B8860B;--accent-t:rgba(0,0,128,0.08);--accent2-t:rgba(184,134,11,0.12);
-    --success:#0A7A50;--warning:#B07B00;--danger:#C0392B;
+    --bg:#F4F5F9;--surface:#FFFFFF;--surface2:#EEEEF5;--surface3:#E2E3ED;
+    --border:rgba(0,0,128,0.15);--border2:rgba(0,0,0,0.08);
+    --text:#0A0A1F;--text2:#44445F;--text3:#9090AA;
+    --accent:#000080;--accent2:#8B6914;--accent-t:rgba(0,0,128,0.08);--accent2-t:rgba(139,105,20,0.1);
+    --gold:#B8960C;--slate:#708090;
+    --success:#0A7A50;--warning:#A07000;--danger:#B83030;
   }
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg:#0D0F14;--surface:#161920;--surface2:#1E2128;--surface3:#262A34;
-    --border:rgba(255,127,80,0.15);--border2:rgba(255,255,255,0.07);
-    --text:#F2F0EC;--text2:#9997B8;--text3:#5A5870;
-    --accent:#FF7F50;--accent2:#008080;--accent-t:rgba(255,127,80,0.12);--accent2-t:rgba(0,128,128,0.12);
+    --bg:#0A0C10;--surface:#13151C;--surface2:#1A1D26;--surface3:#222530;
+    --border:rgba(255,127,80,0.18);--border2:rgba(255,255,255,0.07);
+    --text:#F0EEF8;--text2:#9490B0;--text3:#555270;
+    --accent:#FF7F50;--accent2:#008080;--accent-t:rgba(255,127,80,0.13);--accent2-t:rgba(0,128,128,0.13);
+    --slate:#708090;
     --success:#10B981;--warning:#F59E0B;--danger:#EF4444;
   }
 }
@@ -37,7 +39,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 
 /* AUTH */
 #auth-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;}
-.auth-card{background:var(--surface);border:1px solid var(--border2);border-radius:24px;padding:40px 36px;width:100%;max-width:440px;box-shadow:0 8px 40px rgba(0,0,0,0.12);}
+.auth-card{background:var(--surface);border:1px solid var(--border2);border-top:3px solid var(--accent);border-radius:24px;padding:40px 36px;width:100%;max-width:440px;box-shadow:0 8px 40px rgba(0,0,0,0.12);}
 .auth-logo{text-align:center;margin-bottom:28px;}
 .auth-logo svg{max-width:200px;height:auto;}
 .auth-tabs{display:flex;background:var(--surface2);border-radius:12px;padding:4px;margin-bottom:24px;gap:4px;}
@@ -69,10 +71,10 @@ select.form-input{appearance:none;cursor:pointer;}
 .sidebar{width:232px;background:var(--surface);border-right:1px solid var(--border2);display:flex;flex-direction:column;padding:20px 14px;position:fixed;top:0;left:0;bottom:0;z-index:100;transition:transform 0.3s;}
 .sidebar-logo{padding:4px 6px;margin-bottom:28px;}
 .sidebar-logo svg{max-width:155px;height:auto;}
-.sidebar-section-label{font-size:10px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:var(--text3);padding:0 8px;margin-bottom:4px;margin-top:18px;}
+.sidebar-section-label{font-size:10px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:var(--accent2);padding:0 8px;margin-bottom:4px;margin-top:18px;opacity:0.8;}
 .nav-item{display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:10px;color:var(--text2);font-size:14px;font-weight:500;cursor:pointer;transition:all 0.15s;border:none;background:none;width:100%;text-align:left;font-family:'Inter',sans-serif;}
 .nav-item:hover{background:var(--surface2);color:var(--text);}
-.nav-item.active{background:var(--accent-t);color:var(--accent);}
+.nav-item.active{background:var(--accent-t);color:var(--accent);font-weight:600;}
 .nav-icon{width:17px;height:17px;flex-shrink:0;}
 .sidebar-bottom{margin-top:auto;}
 .user-chip{display:flex;align-items:center;gap:10px;padding:10px;border-radius:12px;background:var(--surface2);}
@@ -92,7 +94,7 @@ select.form-input{appearance:none;cursor:pointer;}
 .card-title{font-size:11px;font-weight:700;color:var(--text3);margin-bottom:14px;text-transform:uppercase;letter-spacing:0.07em;}
 .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px;}
 .stat-card{background:var(--surface);border:1px solid var(--border2);border-radius:16px;padding:18px;position:relative;overflow:hidden;}
-.stat-card::after{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--accent),var(--accent2));}
+.stat-card::after{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--accent),var(--accent2));opacity:0.85;}
 .stat-label{font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:0.05em;}
 .stat-value{font-size:30px;font-weight:700;color:var(--text);margin:6px 0 2px;font-family:'Barlow',sans-serif;}
 .stat-sub{font-size:12px;color:var(--text2);}
@@ -103,13 +105,13 @@ select.form-input{appearance:none;cursor:pointer;}
 .data-table tr:last-child td{border-bottom:none;}
 .data-table tbody tr:hover td{background:var(--surface2);}
 .badge{display:inline-flex;align-items:center;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;}
-.badge-accent{background:var(--accent-t);color:var(--accent);}
-.badge-accent2{background:var(--accent2-t);color:var(--accent2);}
+.badge-accent{background:var(--accent-t);color:var(--accent);border:1px solid var(--accent-t);}
+.badge-accent2{background:var(--accent2-t);color:var(--accent2);border:1px solid var(--accent2-t);}
 .badge-green{background:rgba(16,185,129,0.12);color:#10B981;}
 .badge-gray{background:var(--surface2);color:var(--text2);}
 .btn{padding:9px 16px;border-radius:9px;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.15s;border:none;display:inline-flex;align-items:center;gap:6px;}
 .btn-sm{padding:6px 11px;font-size:12px;border-radius:7px;}
-.btn-accent{background:var(--accent);color:#fff;}
+.btn-accent{background:var(--accent);color:#fff;letter-spacing:0.01em;}
 .btn-accent:hover{opacity:0.88;}
 .btn-ghost{background:var(--surface2);color:var(--text2);border:1px solid var(--border2);}
 .btn-ghost:hover{color:var(--text);}
@@ -128,7 +130,7 @@ select.form-input{appearance:none;cursor:pointer;}
 .message-author{font-size:13px;font-weight:600;color:var(--accent);}
 .message-time{font-size:11px;color:var(--text3);}
 .message-text{font-size:14px;color:var(--text2);line-height:1.5;}
-.next-game-card{background:linear-gradient(135deg,var(--accent-t),var(--accent2-t));border:1px solid var(--border);border-radius:16px;padding:22px;}
+.next-game-card{background:linear-gradient(135deg,var(--accent-t) 0%,var(--accent2-t) 100%);border:1px solid var(--border);border-radius:16px;padding:22px;}
 .next-game-label{font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--accent);margin-bottom:6px;}
 .next-game-title{font-size:19px;font-weight:700;font-family:'Barlow',sans-serif;margin-bottom:3px;}
 .next-game-meta{font-size:13px;color:var(--text2);}
@@ -2082,7 +2084,7 @@ async function loadTeams() {
     const socials = t.social_links ? JSON.parse(t.social_links) : [];
 
     return `
-    <div class="card" style="border:${isActive?'2px solid '+color:'1px solid var(--border2)'};position:relative">
+    <div class="card" style="border:${isActive?'2px solid '+color:'1px solid var(--border2)'};position:relative;overflow:visible">
       ${isActive ? `<div style="position:absolute;top:10px;right:10px;font-size:10px;font-weight:700;color:${color};text-transform:uppercase;letter-spacing:0.06em;background:var(--surface);padding:2px 8px;border-radius:20px;border:1px solid ${color}">Active</div>` : ''}
 
       <!-- Header -->
@@ -2119,36 +2121,49 @@ async function loadTeams() {
       </div>` : ''}
 
       <!-- Actions -->
-      <div style="display:flex;gap:6px;align-items:center;padding-top:12px;border-top:1px solid var(--border2);position:relative">
+      <div style="display:flex;gap:6px;align-items:center;padding-top:12px;border-top:1px solid var(--border2)">
         ${!isActive ? `<button class="btn btn-ghost btn-sm" onclick="switchActiveTeam('${t.id}')">Set as active</button>` : ''}
-        <div style="margin-left:auto;position:relative">
-          <button class="btn btn-ghost btn-sm" onclick="toggleSettingsMenu(event,'${t.id}','${t.name}','${m.role}')" style="display:flex;align-items:center;gap:5px">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
-              Options</button>
-          <div id="menu-${t.id}" class="settings-menu" style="display:none">
-            <button class="settings-menu-item" onclick="openEditTeam('${t.id}')">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-              Edit team
-            </button>
-            ${(isCaptain || m.role==='co-captain') ? `
-            <button class="settings-menu-item" onclick="openAddCoCaptain('${t.id}','${t.name}')">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
-              Add co-captain
-            </button>` : ''}
-            ${isCaptain ? `
-            <button class="settings-menu-item" onclick="openTransferModal('${t.id}','${t.name}');toggleSettingsMenu(event,'${t.id}')">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
-              Transfer captaincy
-            </button>
-            <div style="height:1px;background:var(--border2);margin:4px 0"></div>
-            <button class="settings-menu-item danger" onclick="confirmDeleteTeam('${t.id}','${t.name}')">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
-              Delete team
-            </button>` : `
-            <div style="height:1px;background:var(--border2);margin:4px 0"></div>
-            <button class="settings-menu-item danger" onclick="confirmLeaveTeam('${t.id}','${t.name}')">Leave team</button>`}
+        <button class="btn btn-ghost btn-sm" style="margin-left:auto;display:flex;align-items:center;gap:5px" onclick="toggleSettingsMenu(event,'${t.id}','${t.name}','${m.role}')">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+          Options
+        </button>
+      </div>
+      <!-- Dropdown menu — rendered outside flex row to float freely -->
+      <div id="menu-${t.id}" class="settings-menu" style="display:none">
+        <button class="settings-menu-item" onclick="openEditTeam('${t.id}')">
+          <div class="menu-icon" style="background:rgba(99,102,241,0.12)">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="1.8"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
           </div>
-        </div>
+          <div class="menu-label">Edit team<span class="menu-sub">Name, logo, colors, socials</span></div>
+        </button>
+        ${(isCaptain || m.role==='co-captain') ? `
+        <button class="settings-menu-item" onclick="openAddCoCaptain('${t.id}','${t.name}')">
+          <div class="menu-icon" style="background:rgba(16,185,129,0.12)">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+          </div>
+          <div class="menu-label">Add co-captain<span class="menu-sub">Promote a team member</span></div>
+        </button>` : ''}
+        ${isCaptain ? `
+        <button class="settings-menu-item" onclick="openTransferModal('${t.id}','${t.name}')">
+          <div class="menu-icon" style="background:rgba(245,158,11,0.12)">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="1.8"><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+          </div>
+          <div class="menu-label">Transfer captaincy<span class="menu-sub">Hand over leadership</span></div>
+        </button>
+        <div class="settings-menu-divider"></div>
+        <button class="settings-menu-item danger" onclick="confirmDeleteTeam('${t.id}','${t.name}')">
+          <div class="menu-icon" style="background:rgba(239,68,68,0.1)">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="1.8"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+          </div>
+          <div class="menu-label">Delete team<span class="menu-sub">This cannot be undone</span></div>
+        </button>` : `
+        <div class="settings-menu-divider"></div>
+        <button class="settings-menu-item danger" onclick="confirmLeaveTeam('${t.id}','${t.name}')">
+          <div class="menu-icon" style="background:rgba(239,68,68,0.1)">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="1.8"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          </div>
+          <div class="menu-label">Leave team<span class="menu-sub">You can rejoin with a code</span></div>
+        </button>`}
       </div>
     </div>`;
   }).join('');
