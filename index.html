@@ -558,6 +558,45 @@ select.form-input{appearance:none;cursor:pointer;}
   </div>
 </div>
 
+
+<!-- Create Team Modal -->
+<div class="modal-overlay" id="m-create-team">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">Create a team</div><button class="modal-close" onclick="closeM('m-create-team')">✕</button></div>
+    <div class="form-group"><label class="form-label">Team name</label><input class="form-input" type="text" id="ct-name" placeholder="All the Bases"></div>
+    <div class="form-row-2">
+      <div class="form-group"><label class="form-label">Sport</label><select class="form-input" id="ct-sport"><option value="kickball">Kickball</option><option value="soccer">Soccer</option><option value="softball">Softball</option><option value="volleyball">Volleyball</option></select></div>
+      <div class="form-group"><label class="form-label">League (optional)</label><input class="form-input" type="text" id="ct-league" placeholder="Pride Boston"></div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Team color</label>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px" id="ct-color-picker">
+        <div onclick="selectCtColor('#FF7F50')" style="width:32px;height:32px;border-radius:50%;background:#FF7F50;cursor:pointer;border:3px solid #333" data-color="#FF7F50"></div>
+        <div onclick="selectCtColor('#008080')" style="width:32px;height:32px;border-radius:50%;background:#008080;cursor:pointer;border:3px solid transparent" data-color="#008080"></div>
+        <div onclick="selectCtColor('#000080')" style="width:32px;height:32px;border-radius:50%;background:#000080;cursor:pointer;border:3px solid transparent" data-color="#000080"></div>
+        <div onclick="selectCtColor('#9400D3')" style="width:32px;height:32px;border-radius:50%;background:#9400D3;cursor:pointer;border:3px solid transparent" data-color="#9400D3"></div>
+        <div onclick="selectCtColor('#DC143C')" style="width:32px;height:32px;border-radius:50%;background:#DC143C;cursor:pointer;border:3px solid transparent" data-color="#DC143C"></div>
+        <div onclick="selectCtColor('#228B22')" style="width:32px;height:32px;border-radius:50%;background:#228B22;cursor:pointer;border:3px solid transparent" data-color="#228B22"></div>
+        <input type="color" id="ct-custom-color" onchange="selectCtColor(this.value)" style="width:32px;height:32px;border-radius:50%;border:none;cursor:pointer;padding:0" title="Custom color">
+      </div>
+    </div>
+    <button class="btn btn-accent" style="width:100%;margin-top:8px" onclick="createTeamModal()">Create team</button>
+    <div class="auth-error" id="ct-err"></div>
+  </div>
+</div>
+
+<!-- Join Team Modal -->
+<div class="modal-overlay" id="m-join-team">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">Join a team</div><button class="modal-close" onclick="closeM('m-join-team')">✕</button></div>
+    <p style="font-size:14px;color:var(--text2);margin-bottom:16px">Enter the team code your captain shared with you.</p>
+    <div class="form-group"><label class="form-label">Team code</label><input class="form-input" type="text" id="jt-code" placeholder="KICK-4X9Z" style="font-family:'DM Mono',monospace;font-size:18px;text-align:center;letter-spacing:0.1em;text-transform:uppercase" oninput="this.value=this.value.toUpperCase()"></div>
+    <button class="btn btn-accent" style="width:100%;margin-top:8px" onclick="joinTeamModal()">Join team</button>
+    <div class="auth-error" id="jt-err"></div>
+    <div class="auth-success" id="jt-ok"></div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -635,15 +674,21 @@ async function doLogin(){
 
 async function enterApp(u) {
   user = u;
+
+  // Load profile from DB first — always use saved name over auth metadata
+  const { data: dbProfile } = await sb.from('profiles').select('*').eq('id', u.id).maybeSingle();
+
   profile = {
-    full_name: u.user_metadata?.full_name || u.email,
-    first_name: u.user_metadata?.full_name?.split(' ')[0] || u.email.split('@')[0],
-    role: u.user_metadata?.role || 'player',
-    email: u.email
+    full_name: dbProfile?.full_name || u.user_metadata?.full_name || u.email,
+    first_name: dbProfile?.first_name || u.user_metadata?.full_name?.split(' ')[0] || u.email.split('@')[0],
+    role: dbProfile?.role || u.user_metadata?.role || 'player',
+    email: u.email,
+    ...dbProfile
   };
+
   document.getElementById('u-name').textContent = profile.full_name;
   document.getElementById('u-role').textContent = profile.role;
-  document.getElementById('u-avatar').textContent = profile.full_name.charAt(0).toUpperCase();
+  document.getElementById('u-avatar').textContent = (profile.first_name || profile.full_name || u.email).charAt(0).toUpperCase();
   document.getElementById('greeting').textContent = 'Welcome back, ' + profile.first_name + '!';
 
   // Load full profile in background
