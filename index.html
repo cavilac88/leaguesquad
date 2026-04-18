@@ -244,6 +244,93 @@ select.form-input{appearance:none;cursor:pointer;}
   </div>
 </div>
 
+
+<!-- ONBOARDING -->
+<div id="onboarding-screen" style="display:none;min-height:100vh;align-items:center;justify-content:center;padding:20px;background:var(--bg)">
+  <div style="width:100%;max-width:480px">
+    <div style="text-align:center;margin-bottom:32px" id="ob-logo"></div>
+    <div id="ob-step-welcome" class="card">
+      <div style="text-align:center;margin-bottom:24px">
+        <div style="font-size:22px;font-weight:600;margin-bottom:6px">Welcome, <span id="ob-name"></span>!</div>
+        <div style="font-size:14px;color:var(--text2)">Do you want to set up your team now?</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <button class="btn" style="padding:16px;font-size:15px;justify-content:center;background:var(--accent);color:#fff;border-radius:12px" onclick="showObStep('create')">
+          Create a team
+          <span style="font-size:12px;opacity:0.8;margin-left:4px">— I'm a captain</span>
+        </button>
+        <button class="btn btn-ghost" style="padding:16px;font-size:15px;justify-content:center;border-radius:12px" onclick="showObStep('join')">
+          Join a team
+          <span style="font-size:12px;opacity:0.8;margin-left:4px">— I have a code</span>
+        </button>
+        <button class="btn" style="padding:14px;font-size:14px;justify-content:center;color:var(--text3);background:none;border:none" onclick="skipOnboarding()">
+          Skip for now — go to dashboard
+        </button>
+      </div>
+    </div>
+
+    <!-- CREATE TEAM STEP -->
+    <div id="ob-step-create" style="display:none">
+      <div class="card">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px">
+          <button class="btn btn-ghost btn-sm" onclick="showObStep('welcome')">← Back</button>
+          <div style="font-size:17px;font-weight:600">Create your team</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Team name</label>
+          <input class="form-input" type="text" id="ob-team-name" placeholder="All the Bases">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Sport</label>
+          <select class="form-input" id="ob-team-sport">
+            <option value="kickball">Kickball</option>
+            <option value="soccer">Soccer</option>
+            <option value="softball">Softball</option>
+            <option value="volleyball">Volleyball</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">League name (optional)</label>
+          <input class="form-input" type="text" id="ob-team-league" placeholder="Pride Boston">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Team color</label>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px" id="color-picker">
+            <div onclick="selectTeamColor('#FF7F50')" style="width:32px;height:32px;border-radius:50%;background:#FF7F50;cursor:pointer;border:3px solid transparent" data-color="#FF7F50"></div>
+            <div onclick="selectTeamColor('#008080')" style="width:32px;height:32px;border-radius:50%;background:#008080;cursor:pointer;border:3px solid transparent" data-color="#008080"></div>
+            <div onclick="selectTeamColor('#000080')" style="width:32px;height:32px;border-radius:50%;background:#000080;cursor:pointer;border:3px solid transparent" data-color="#000080"></div>
+            <div onclick="selectTeamColor('#9400D3')" style="width:32px;height:32px;border-radius:50%;background:#9400D3;cursor:pointer;border:3px solid transparent" data-color="#9400D3"></div>
+            <div onclick="selectTeamColor('#DC143C')" style="width:32px;height:32px;border-radius:50%;background:#DC143C;cursor:pointer;border:3px solid transparent" data-color="#DC143C"></div>
+            <div onclick="selectTeamColor('#228B22')" style="width:32px;height:32px;border-radius:50%;background:#228B22;cursor:pointer;border:3px solid transparent" data-color="#228B22"></div>
+            <div onclick="selectTeamColor('#FF8C00')" style="width:32px;height:32px;border-radius:50%;background:#FF8C00;cursor:pointer;border:3px solid transparent" data-color="#FF8C00"></div>
+            <div onclick="selectTeamColor('#708090')" style="width:32px;height:32px;border-radius:50%;background:#708090;cursor:pointer;border:3px solid transparent" data-color="#708090"></div>
+            <input type="color" id="ob-custom-color" onchange="selectTeamColor(this.value)" style="width:32px;height:32px;border-radius:50%;border:none;cursor:pointer;padding:0" title="Custom color">
+          </div>
+        </div>
+        <button class="btn btn-accent" style="width:100%;margin-top:8px;padding:13px;font-size:15px" onclick="createTeam()">Create team</button>
+        <div class="auth-error" id="create-team-err"></div>
+      </div>
+    </div>
+
+    <!-- JOIN TEAM STEP -->
+    <div id="ob-step-join" style="display:none">
+      <div class="card">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px">
+          <button class="btn btn-ghost btn-sm" onclick="showObStep('welcome')">← Back</button>
+          <div style="font-size:17px;font-weight:600">Join a team</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Team code</label>
+          <input class="form-input" type="text" id="ob-join-code" placeholder="KICK-4X9Z" style="font-family:'DM Mono',monospace;font-size:18px;text-align:center;letter-spacing:0.1em;text-transform:uppercase">
+        </div>
+        <button class="btn btn-accent" style="width:100%;margin-top:8px;padding:13px;font-size:15px" onclick="joinTeam()">Join team</button>
+        <div class="auth-error" id="join-team-err"></div>
+        <div class="auth-success" id="join-team-ok"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- APP -->
 <div id="app-screen">
   <div class="mobile-header">
@@ -270,6 +357,7 @@ select.form-input{appearance:none;cursor:pointer;}
       <button class="nav-item" onclick="nav('schedule')"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Schedule</button>
       <button class="nav-item" onclick="nav('lineup')"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>Lineup</button>
       <button class="nav-item" onclick="nav('messages')"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Messages</button>
+      <button class="nav-item" onclick="nav('teams')"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>My Teams</button>
       <button class="nav-item" onclick="nav('profile')"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>My Profile</button>
       <div class="sidebar-bottom">
         <div class="user-chip">
@@ -416,6 +504,21 @@ select.form-input{appearance:none;cursor:pointer;}
           </div>
         </div>
       </div>
+
+      <!-- TEAMS -->
+      <div class="page" id="page-teams">
+        <div class="page-header">
+          <div><div class="page-title">My Teams</div><div class="page-subtitle">Teams you captain or play for</div></div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-ghost" onclick="openM('m-join-team')">Join team</button>
+            <button class="btn btn-accent" onclick="openM('m-create-team')">+ Create team</button>
+          </div>
+        </div>
+        <div id="teams-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px">
+          <div class="empty-state card"><div class="empty-icon">🏅</div><p>No teams yet</p></div>
+        </div>
+      </div>
+
 </main>
   </div>
 </div>
@@ -542,8 +645,34 @@ async function enterApp(u) {
   document.getElementById('u-role').textContent = profile.role;
   document.getElementById('u-avatar').textContent = profile.full_name.charAt(0).toUpperCase();
   document.getElementById('greeting').textContent = 'Welcome back, ' + profile.first_name + '!';
-  showApp();
+
+  // Load full profile in background
   loadProfile().catch(e => console.warn('Profile load:', e.message));
+  // Load sidebar team
+  loadSidebarTeam().catch(()=>{});
+
+  // Check for join link first
+  const params = new URLSearchParams(window.location.search);
+  const joinCode = params.get('join');
+  if (joinCode) {
+    window.history.replaceState(null, '', window.location.pathname);
+    document.getElementById('jt-code').value = joinCode.toUpperCase();
+    openM('m-join-team');
+    showApp();
+    return;
+  }
+
+  // Show onboarding only for new users (no teams yet)
+  const onboardingDone = localStorage.getItem('ls-onboarding-done-' + u.id);
+  if (!onboardingDone) {
+    const { count } = await sb.from('team_members').select('*', {count:'exact',head:true}).eq('user_id', u.id);
+    if (!count) {
+      showOnboarding();
+      return;
+    }
+    localStorage.setItem('ls-onboarding-done-' + u.id, '1');
+  }
+  showApp();
 }
 
 // SIGNUP
@@ -691,7 +820,7 @@ function showAuth(){document.getElementById('auth-screen').style.display='flex';
 function showApp(){document.getElementById('auth-screen').style.display='none';document.getElementById('app-screen').style.display='block';loadDashboard();}
 
 // NAV
-const PAGES=['dashboard','roster','schedule','lineup','messages','profile'];
+const PAGES=['dashboard','roster','schedule','lineup','messages','teams','profile'];
 function nav(page){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
@@ -699,7 +828,7 @@ function nav(page){
   const idx=PAGES.indexOf(page);
   if(idx>=0)document.querySelectorAll('.nav-item')[idx].classList.add('active');
   if(window.innerWidth<=768)document.getElementById('sidebar').classList.remove('open');
-  ({dashboard:loadDashboard,roster:loadRoster,schedule:loadSchedule,lineup:loadLineup,messages:loadMessages,profile:loadProfilePage}[page]?.());
+  ({dashboard:loadDashboard,roster:loadRoster,schedule:loadSchedule,lineup:loadLineup,messages:loadMessages,teams:loadTeams,profile:loadProfilePage}[page]?.());
 }
 
 function changeSport(sport) {
@@ -1054,6 +1183,280 @@ document.addEventListener('click', e => {
     if (list) list.style.display = 'none';
   }
 });
+
+
+// ── ONBOARDING ──
+let selectedTeamColor = '#FF7F50';
+let selectedCtColor = '#FF7F50';
+
+function showOnboarding() {
+  document.getElementById('auth-screen').style.display = 'none';
+  document.getElementById('app-screen').style.display = 'none';
+  document.getElementById('onboarding-screen').style.display = 'flex';
+  // Set logo in onboarding
+  const el = document.getElementById('ob-logo');
+  if (el) el.innerHTML = document.getElementById('auth-logo').innerHTML;
+  // Set name
+  const nameEl = document.getElementById('ob-name');
+  if (nameEl) nameEl.textContent = profile?.first_name || user?.email?.split('@')[0] || 'there';
+  showObStep('welcome');
+}
+
+function showObStep(step) {
+  ['welcome','create','join'].forEach(s => {
+    const el = document.getElementById('ob-step-' + s);
+    if (el) el.style.display = s === step ? 'block' : 'none';
+  });
+}
+
+function skipOnboarding() {
+  localStorage.setItem('ls-onboarding-done-' + user.id, '1');
+  document.getElementById('onboarding-screen').style.display = 'none';
+  showApp();
+}
+
+function selectTeamColor(color) {
+  selectedTeamColor = color;
+  document.querySelectorAll('#color-picker [data-color]').forEach(el => {
+    el.style.border = el.dataset.color === color ? '3px solid var(--text)' : '3px solid transparent';
+  });
+}
+
+function selectCtColor(color) {
+  selectedCtColor = color;
+  document.querySelectorAll('#ct-color-picker [data-color]').forEach(el => {
+    el.style.border = el.dataset.color === color ? '3px solid var(--text)' : '3px solid transparent';
+  });
+}
+
+function generateTeamCode(sport, name) {
+  const prefix = sport.substring(0,4).toUpperCase();
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code = '';
+  for (let i = 0; i < 4; i++) code += chars[Math.floor(Math.random() * chars.length)];
+  return prefix + '-' + code;
+}
+
+async function createTeam() {
+  const name = document.getElementById('ob-team-name').value.trim();
+  const sport = document.getElementById('ob-team-sport').value;
+  const league = document.getElementById('ob-team-league').value.trim();
+  const errEl = document.getElementById('create-team-err');
+  errEl.textContent = '';
+  if (!name) { errEl.textContent = 'Team name is required'; return; }
+
+  const code = generateTeamCode(sport, name);
+  const initials = name.split(' ').map(w => w[0]).join('').substring(0,3).toUpperCase();
+
+  const { data: team, error } = await sb.from('teams').insert({
+    name, sport, league: league || null,
+    code, color: selectedTeamColor,
+    initials, created_by: user.id
+  }).select().single();
+
+  if (error) { errEl.textContent = error.message; return; }
+
+  // Add creator as captain
+  await sb.from('team_members').insert({
+    team_id: team.id, user_id: user.id,
+    role: 'captain', display_name: profile?.full_name || user.email
+  });
+
+  // Update profile role
+  await sb.from('profiles').update({ role: 'captain' }).eq('id', user.id);
+  if (profile) profile.role = 'captain';
+
+  localStorage.setItem('ls-onboarding-done-' + user.id, '1');
+  localStorage.setItem('ls-active-team-' + user.id, team.id);
+  document.getElementById('onboarding-screen').style.display = 'none';
+  showApp();
+  updateSidebarTeam(team);
+  showTeamCreatedToast(team);
+}
+
+async function createTeamModal() {
+  const name = document.getElementById('ct-name').value.trim();
+  const sport = document.getElementById('ct-sport').value;
+  const league = document.getElementById('ct-league').value.trim();
+  const errEl = document.getElementById('ct-err');
+  errEl.textContent = '';
+  if (!name) { errEl.textContent = 'Team name is required'; return; }
+
+  const code = generateTeamCode(sport, name);
+  const initials = name.split(' ').map(w => w[0]).join('').substring(0,3).toUpperCase();
+
+  const { data: team, error } = await sb.from('teams').insert({
+    name, sport, league: league || null,
+    code, color: selectedCtColor,
+    initials, created_by: user.id
+  }).select().single();
+
+  if (error) { errEl.textContent = error.message; return; }
+
+  await sb.from('team_members').insert({
+    team_id: team.id, user_id: user.id,
+    role: 'captain', display_name: profile?.full_name || user.email
+  });
+
+  closeM('m-create-team');
+  document.getElementById('ct-name').value = '';
+  localStorage.setItem('ls-active-team-' + user.id, team.id);
+  updateSidebarTeam(team);
+  showTeamCreatedToast(team);
+  loadTeams();
+}
+
+function showTeamCreatedToast(team) {
+  toast(`Team "${team.name}" created! Code: ${team.code}`, 'success');
+}
+
+async function joinTeam() {
+  const code = document.getElementById('ob-join-code').value.trim().toUpperCase();
+  const errEl = document.getElementById('join-team-err');
+  const okEl = document.getElementById('join-team-ok');
+  errEl.textContent = ''; okEl.textContent = '';
+  if (!code) { errEl.textContent = 'Please enter a team code'; return; }
+
+  const { data: team, error } = await sb.from('teams').select('*').eq('code', code).single();
+  if (error || !team) { errEl.textContent = 'Team not found. Check the code and try again.'; return; }
+
+  // Check if already a member
+  const { data: existing } = await sb.from('team_members').select('id').eq('team_id', team.id).eq('user_id', user.id).single();
+  if (existing) { errEl.textContent = 'You are already a member of this team!'; return; }
+
+  await sb.from('team_members').insert({
+    team_id: team.id, user_id: user.id,
+    role: 'player', display_name: profile?.full_name || user.email
+  });
+
+  localStorage.setItem('ls-onboarding-done-' + user.id, '1');
+  localStorage.setItem('ls-active-team-' + user.id, team.id);
+  okEl.textContent = `Joined "${team.name}"!`;
+  setTimeout(() => {
+    document.getElementById('onboarding-screen').style.display = 'none';
+    showApp();
+    updateSidebarTeam(team);
+  }, 1200);
+}
+
+async function joinTeamModal() {
+  const code = document.getElementById('jt-code').value.trim().toUpperCase();
+  const errEl = document.getElementById('jt-err');
+  const okEl = document.getElementById('jt-ok');
+  errEl.textContent = ''; okEl.textContent = '';
+  if (!code) { errEl.textContent = 'Please enter a team code'; return; }
+
+  const { data: team, error } = await sb.from('teams').select('*').eq('code', code).single();
+  if (error || !team) { errEl.textContent = 'Team not found. Check the code and try again.'; return; }
+
+  const { data: existing } = await sb.from('team_members').select('id').eq('team_id', team.id).eq('user_id', user.id).single();
+  if (existing) { errEl.textContent = 'You are already a member of this team!'; return; }
+
+  await sb.from('team_members').insert({
+    team_id: team.id, user_id: user.id,
+    role: 'player', display_name: profile?.full_name || user.email
+  });
+
+  closeM('m-join-team');
+  document.getElementById('jt-code').value = '';
+  localStorage.setItem('ls-active-team-' + user.id, team.id);
+  updateSidebarTeam(team);
+  toast(`Joined "${team.name}"!`, 'success');
+  loadTeams();
+}
+
+// Handle join via URL link (?join=CODE)
+function checkJoinLink() {
+  const params = new URLSearchParams(window.location.search);
+  const joinCode = params.get('join');
+  if (joinCode && user) {
+    document.getElementById('ob-join-code').value = joinCode.toUpperCase();
+    showOnboarding();
+    showObStep('join');
+    window.history.replaceState(null, '', window.location.pathname);
+  }
+}
+
+function updateSidebarTeam(team) {
+  // Update sidebar with team info
+  const roleEl = document.getElementById('u-role');
+  if (roleEl && team) {
+    roleEl.innerHTML = `<span style="color:var(--accent)">${team.name}</span> · ${localStorage.getItem('ls-active-role-' + user.id) || 'Player'}`;
+  }
+}
+
+async function loadSidebarTeam() {
+  const teamId = localStorage.getItem('ls-active-team-' + user.id);
+  if (!teamId) return;
+  const { data: membership } = await sb.from('team_members').select('role, teams(name, color)').eq('team_id', teamId).eq('user_id', user.id).single();
+  if (!membership?.teams) return;
+  const roleEl = document.getElementById('u-role');
+  if (roleEl) {
+    roleEl.innerHTML = `<span style="color:var(--accent)">${membership.teams.name}</span> · ${membership.role}`;
+  }
+}
+
+// ── TEAMS PAGE ──
+async function loadTeams() {
+  const { data: memberships } = await sb.from('team_members').select('role, teams(*)').eq('user_id', user.id);
+  const container = document.getElementById('teams-list');
+  if (!memberships?.length) {
+    container.innerHTML = '<div class="empty-state card"><div class="empty-icon">🏅</div><p>No teams yet — create or join one!</p></div>';
+    return;
+  }
+  const activeTeamId = localStorage.getItem('ls-active-team-' + user.id);
+  container.innerHTML = memberships.map(m => {
+    const t = m.teams;
+    const isActive = t.id === activeTeamId;
+    return `
+    <div class="card" style="border:${isActive ? '2px solid ' + (t.color || 'var(--accent)') : '1px solid var(--border2)'};position:relative;cursor:pointer" onclick="setActiveTeam('${t.id}','${m.role}')">
+      ${isActive ? '<div style="position:absolute;top:12px;right:12px;font-size:11px;font-weight:700;color:'+t.color+';text-transform:uppercase;letter-spacing:0.05em">Active</div>' : ''}
+      <div style="display:flex;align-items:center;gap:14px;margin-bottom:14px">
+        <div style="width:52px;height:52px;border-radius:12px;background:${t.color||'var(--accent)'};display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:#fff;flex-shrink:0">${t.initials||t.name.charAt(0)}</div>
+        <div>
+          <div style="font-size:16px;font-weight:600">${t.name}</div>
+          <div style="font-size:12px;color:var(--text2)">${t.sport} ${t.league ? '· '+t.league : ''}</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:6px;align-items:center;justify-content:space-between">
+        <span class="badge ${m.role==='captain'?'badge-accent':'badge-gray'}">${m.role}</span>
+        <div style="display:flex;align-items:center;gap:6px">
+          <span style="font-size:11px;color:var(--text3)">Code:</span>
+          <span style="font-family:'DM Mono',monospace;font-size:13px;font-weight:600;color:var(--accent);letter-spacing:0.05em">${t.code}</span>
+          <button class="btn btn-ghost btn-sm" onclick="copyCode(event,'${t.code}')">Copy</button>
+        </div>
+      </div>
+      ${m.role==='captain' ? `
+      <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border2)">
+        <div style="font-size:12px;color:var(--text3);margin-bottom:6px">Invite link:</div>
+        <div style="display:flex;gap:6px">
+          <input class="form-input" readonly value="https://cavilac88.github.io/leaguesquad/?join=${t.code}" style="font-size:11px;padding:6px 10px">
+          <button class="btn btn-ghost btn-sm" onclick="copyLink(event,'${t.code}')">Copy</button>
+        </div>
+      </div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+async function setActiveTeam(teamId, role) {
+  localStorage.setItem('ls-active-team-' + user.id, teamId);
+  localStorage.setItem('ls-active-role-' + user.id, role);
+  await loadSidebarTeam();
+  toast('Active team updated!', 'success');
+  loadTeams();
+}
+
+function copyCode(e, code) {
+  e.stopPropagation();
+  navigator.clipboard.writeText(code);
+  toast('Team code copied!', 'success');
+}
+
+function copyLink(e, code) {
+  e.stopPropagation();
+  navigator.clipboard.writeText('https://cavilac88.github.io/leaguesquad/?join=' + code);
+  toast('Invite link copied!', 'success');
+}
 
 // COUNTRY AUTOCOMPLETE
 const COUNTRIES = [
