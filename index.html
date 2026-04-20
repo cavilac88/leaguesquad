@@ -545,12 +545,7 @@ select.form-input{appearance:none;cursor:pointer;}
                   <text x="320" y="105" text-anchor="middle" fill="rgba(255,255,255,0.5)" font-size="8" font-family="Inter,sans-serif" font-weight="600">RIGHT</text>
                   <text id="ftext-Right Field" x="320" y="117" text-anchor="middle" fill="white" font-size="9" font-family="Inter,sans-serif" font-weight="700">+</text>
                 </g>
-                <!-- Rover -->
-                <g class="field-pos" id="fpos-Rover" onclick="clickFieldPos('Rover')" style="cursor:pointer">
-                  <circle cx="245" cy="155" r="22" fill="rgba(0,0,0,0.4)" stroke="rgba(255,255,255,0.2)" stroke-width="1.5"/>
-                  <text x="245" y="150" text-anchor="middle" fill="rgba(255,255,255,0.5)" font-size="8" font-family="Inter,sans-serif" font-weight="600">ROVER</text>
-                  <text id="ftext-Rover" x="245" y="162" text-anchor="middle" fill="white" font-size="9" font-family="Inter,sans-serif" font-weight="700">+</text>
-                </g>
+
               </svg>
             </div>
           </div>
@@ -2761,11 +2756,10 @@ function saveAttendance() {
 }
 
 async function renderAttendance() {
-  // Make sure roster is loaded
-  if (!rosterPlayers.length) {
-    const { data: players } = await sb.from('players').select('*').order('first_name');
-    rosterPlayers = players || [];
-  }
+  // Always reload roster fresh
+  const { data: freshPlayers } = await sb.from('players').select('*').order('first_name');
+  if (freshPlayers?.length) rosterPlayers = freshPlayers;
+  
   loadAttendance();
   const list = document.getElementById('attendance-list');
   const countEl = document.getElementById('attendance-count');
@@ -2800,7 +2794,8 @@ async function renderAttendance() {
     return attendance[name] !== 'absent';
   }).length;
 
-  if (countEl) countEl.textContent = presentCount + ' / ' + rosterPlayers.length + ' present';
+  if (countEl) countEl.textContent = `${presentCount} / ${rosterPlayers.length} present`;
+  document.getElementById('cfg-roster-count').textContent = rosterPlayers.length;
 
   list.innerHTML = rosterPlayers.map(p => {
     const name = (p.first_name + ' ' + (p.last_name||'')).trim();
