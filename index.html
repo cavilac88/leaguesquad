@@ -1309,7 +1309,14 @@ function toggleRosterAttendance(name, status, teamId) {
   const att = JSON.parse(localStorage.getItem(key) || '{}');
   att[name] = status;
   localStorage.setItem(key, JSON.stringify(att));
+  // Also sync to lineup attendance
+  attendance[name] = status;
   loadRoster();
+  // Refresh attendance panel if on lineup page
+  if (document.getElementById('page-lineup').classList.contains('active')) {
+    renderAttendance();
+    renderKickingOrderFiltered();
+  }
 }
 
 async function addPlayer(){
@@ -2571,23 +2578,37 @@ async function doTransferCaptaincy() {
 
 
 // ── POSITION PREFERENCES (Profile) ──
-const ALL_POSITIONS = ['Pitcher','Catcher','1st Base','2nd Base','3rd Base','Shortstop','Left Field','Center Field','Right Field','Rover'];
+const ALL_POSITIONS = ['Pitcher','Catcher','1st Base','2nd Base','3rd Base','Shortstop','Left Field','Center Field','Right Field'];
 let selectedPosPrefs = [];
 
 function renderPosPrefsPicker() {
   const container = document.getElementById('prof-pos-prefs');
   if (!container) return;
-  container.innerHTML = ALL_POSITIONS.map(pos => {
+  
+  const positions = activePositions.length ? activePositions : ALL_POSITIONS;
+  
+  container.innerHTML = '';
+  positions.forEach(pos => {
     const rank = selectedPosPrefs.indexOf(pos);
     const selected = rank >= 0;
-    return `<button onclick="togglePosPref('${pos}')" style="padding:8px 10px;border-radius:9px;font-size:12px;font-weight:600;border:1px solid ${selected?'var(--accent)':'var(--border2)'};background:${selected?'var(--accent-t)':'var(--surface2)'};color:${selected?'var(--accent)':'var(--text2)'};cursor:pointer;transition:all 0.15s;position:relative">
-      ${pos}
-      ${selected ? `<span style="position:absolute;top:-6px;right:-6px;width:16px;height:16px;border-radius:50%;background:var(--accent);color:#fff;font-size:9px;display:flex;align-items:center;justify-content:center;font-weight:700">${rank+1}</span>` : ''}
-    </button>`;
-  }).join('');
-  document.getElementById('prof-pos-selected').textContent = 
-    selectedPosPrefs.length ? selectedPosPrefs.map((p,i) => (i+1)+'. '+p).join(', ') : 'None';
+    const btn = document.createElement('button');
+    btn.style.cssText = 'padding:10px;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.15s;position:relative;text-align:center;' +
+      (selected ? 'border:1.5px solid var(--accent);background:var(--accent-t);color:var(--accent);' : 'border:1px solid var(--border2);background:var(--surface2);color:var(--text2);');
+    btn.textContent = pos;
+    if (selected) {
+      const badge = document.createElement('span');
+      badge.style.cssText = 'position:absolute;top:-7px;right:-7px;width:18px;height:18px;border-radius:50%;background:var(--accent);color:#fff;font-size:10px;display:flex;align-items:center;justify-content:center;font-weight:700;';
+      badge.textContent = rank + 1;
+      btn.appendChild(badge);
+    }
+    btn.addEventListener('click', () => togglePosPref(pos));
+    container.appendChild(btn);
+  });
+  
+  const selEl = document.getElementById('prof-pos-selected');
+  if (selEl) selEl.textContent = selectedPosPrefs.length ? selectedPosPrefs.map((p,i) => (i+1)+'. '+p).join('  •  ') : 'None';
 }
+
 
 function togglePosPref(pos) {
   const idx = selectedPosPrefs.indexOf(pos);
@@ -2725,8 +2746,10 @@ let attendance = {}; // { playerName: 'present' | 'absent' }
 function loadAttendance() {
   const teamId = localStorage.getItem('ls-active-team-' + user.id);
   const gameId = document.getElementById('game-selector')?.value;
-  const key = 'attendance-' + teamId + (gameId ? '-' + gameId : '');
-  const saved = localStorage.getItem(key);
+  // Try game-specific key first, fall back to general team attendance
+  const gameKey = gameId ? 'attendance-' + teamId + '-' + gameId : null;
+  const generalKey = 'attendance-' + teamId;
+  const saved = (gameKey ? localStorage.getItem(gameKey) : null) || localStorage.getItem(generalKey);
   attendance = saved ? JSON.parse(saved) : {};
 }
 
