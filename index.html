@@ -3032,8 +3032,6 @@ function cycleDashAttendance(name, gameId, teamId) {
 
 
 // ── PROFILE PAGE ──
-let photoDataUrl = null;
-
 async function loadProfilePage() {
   const emailEl = document.getElementById('prof-email');
   if (emailEl && user?.email) emailEl.value = user.email;
