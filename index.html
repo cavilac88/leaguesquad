@@ -433,7 +433,7 @@ select.form-input{appearance:none;cursor:pointer;}
           </div>
           <div style="display:flex;gap:8px;flex-wrap:wrap">
             <button class="btn btn-ghost" onclick="openM('m-lineup-settings')">Game settings</button>
-            <button class="btn btn-ghost" onclick="openM('m-pos-prefs')">My preferences</button>
+            <button class="btn btn-ghost" onclick="openPosPrefsModal()">My preferences</button>
             <button class="btn btn-accent" onclick="autoDistribute()">Auto-distribute</button>
           </div>
         </div>
@@ -1281,7 +1281,8 @@ async function addPlayer(){
   const email=document.getElementById('p-email').value.trim();
   const city=document.getElementById('p-city').value.trim();
   if(!first){toast('First name is required','error');return;}
-  const{error}=await sb.from('players').insert({first_name:first,last_name:last,role,sport,email:email||null,city:city||null,team_id:user.id});
+  const activeTeamId = localStorage.getItem('ls-active-team-' + user.id);
+  const{error}=await sb.from('players').insert({first_name:first,last_name:last,role,sport,email:email||null,city:city||null,team_id:activeTeamId||null});
   if(error){toast(error.message,'error');return;}
   closeM('m-player');
   ['p-first','p-last','p-email','p-city'].forEach(id=>document.getElementById(id).value='');
@@ -1386,7 +1387,12 @@ async function sendMsg(){
 }
 
 // MODALS
-function openM(id){document.getElementById(id).classList.add('open');}
+function openM(id){
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.classList.add('open');
+  if (id === 'm-lineup-settings') renderPositionsConfig();
+}
 function closeM(id){document.getElementById(id).classList.remove('open');}
 document.querySelectorAll('.modal-overlay').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open');}));
 
@@ -1597,11 +1603,8 @@ let rosterPlayers = [];
 let kickingOrder = [];
 
 async function loadLineup() {
-  // Load roster for active team
-  const teamId_ = localStorage.getItem('ls-active-team-' + user.id);
-  let query = sb.from('players').select('*').order('first_name');
-  if (teamId_) query = query.eq('team_id', teamId_);
-  const { data: players } = await query;
+  // Load all players
+  const { data: players } = await sb.from('players').select('*').order('first_name');
   rosterPlayers = players || [];
 
   document.getElementById('cfg-roster-count').textContent = rosterPlayers.length;
@@ -2886,14 +2889,10 @@ function loadActivePositions() {
   }
 }
 
-// Override openM for lineup settings to render positions
-const origOpenM = openM;
-function openM(id) {
-  origOpenM(id);
-  if (id === 'm-lineup-settings') {
-    renderPositionsConfig();
-  }
-}
+// Patch addEventListener for lineup settings modal
+document.addEventListener('DOMContentLoaded', () => {
+  // render positions when settings modal opens
+});
 
 // ── GAME HISTORY ──
 async function saveLineupForGame(gameId) {
@@ -3104,10 +3103,7 @@ function saveAttendance() {
 async function renderAttendance() {
   // Make sure roster is loaded
   if (!rosterPlayers.length) {
-    const teamId_ = localStorage.getItem('ls-active-team-' + user.id);
-    let query = sb.from('players').select('*').order('first_name');
-    if (teamId_) query = query.eq('team_id', teamId_);
-    const { data: players } = await query;
+    const { data: players } = await sb.from('players').select('*').order('first_name');
     rosterPlayers = players || [];
   }
   loadAttendance();
@@ -3269,11 +3265,15 @@ async function autoDistribute() {
 let modalPosPrefs = [];
 
 async function openPosPrefsModal() {
+  // Ensure activePositions is loaded
+  loadActivePositions();
+  if (!activePositions.length) activePositions = [...ALL_POSITIONS];
   // Load current prefs
   const { data } = await sb.from('profiles').select('position_prefs').eq('id', user.id).maybeSingle();
   modalPosPrefs = data?.position_prefs ? JSON.parse(data.position_prefs) : [];
   renderModalPosPicker();
-  openM('m-pos-prefs');
+  // Directly show modal without going through openM override
+  document.getElementById('m-pos-prefs').classList.add('open');
 }
 
 function renderModalPosPicker() {
@@ -3319,14 +3319,15 @@ async function savePosPrefsFromModal() {
   loadLineup();
 }
 
-// Override openM to handle pos-prefs
-const prevOpenM = openM;
-function openM(id) {
-  if (id === 'm-pos-prefs') {
-    openPosPrefsModal();
-    return;
-  }
-  prevOpenM(id);
+// Note: m-pos-prefs is opened directly via openPosPrefsModal()
+
+
+// Fix existing players with wrong team_id
+async function repairPlayerTeamIds() {
+  const teamId = localStorage.getItem('ls-active-team-' + user.id);
+  if (!teamId) return;
+  // Update all players that have user.id as team_id to use the actual team_id
+  await sb.from('players').update({ team_id: teamId }).eq('team_id', user.id);
 }
 
 // COUNTRY AUTOCOMPLETE
