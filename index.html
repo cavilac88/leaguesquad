@@ -1713,12 +1713,18 @@ function clickFieldPos(pos) {
     const prefRank = prefs.indexOf(pos);
     const prefLabel = prefRank === 0 ? '⭐ 1st choice' : prefRank === 1 ? '✓ 2nd choice' : prefRank === 2 ? '~ 3rd choice' : '';
 
-    return `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;background:${isAssignedHere?'var(--accent-t)':isAssignedElse?'var(--surface3)':'var(--surface2)'};border:1px solid ${isAssignedHere?'var(--border)':'var(--border2)'};cursor:${isAssignedElse?'not-allowed':'pointer'};opacity:${isAssignedElse?'0.5':'1'}"
-      onclick="${isAssignedElse?'':'assignPlayer(event,''+name+'',''+pos+'',' + currentInning + ')'}">
+    const bg = isAssignedHere ? 'var(--accent-t)' : isAssignedElse ? 'var(--surface3)' : 'var(--surface2)';
+    const bd = isAssignedHere ? 'var(--border)' : 'var(--border2)';
+    const cur = isAssignedElse ? 'not-allowed' : 'pointer';
+    const op = isAssignedElse ? '0.5' : '1';
+    const onclk = isAssignedElse ? '' : `assignPlayer(event,'${name}','${pos}',${currentInning})`;
+    const prefColor = prefRank >= 0 ? 'var(--accent)' : 'var(--text3)';
+
+    return `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;background:${bg};border:1px solid ${bd};cursor:${cur};opacity:${op}" onclick="${onclk}">
       <div class="avatar" style="width:30px;height:30px;font-size:11px;flex-shrink:0">${p.first_name.charAt(0)}</div>
       <div style="flex:1">
         <div style="font-size:14px;font-weight:600">${name}</div>
-        <div style="font-size:11px;color:${prefRank>=0?'var(--accent)':'var(--text3)'}">${prefLabel || (isAssignedElse?'Already assigned':'Available')}</div>
+        <div style="font-size:11px;color:${prefColor}">${prefLabel || (isAssignedElse ? 'Already assigned' : 'Available')}</div>
       </div>
       ${isAssignedHere ? '<span style="font-size:11px;color:var(--accent);font-weight:600">Current</span>' : ''}
     </div>`;
