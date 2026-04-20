@@ -1220,9 +1220,13 @@ const PAGES=['dashboard','roster','lineup','schedule','messages','teams','profil
 function nav(page){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
-  document.getElementById('page-'+page).classList.add('active');
-  const idx=PAGES.indexOf(page);
-  if(idx>=0)document.querySelectorAll('.nav-item')[idx].classList.add('active');
+  const pageEl = document.getElementById('page-'+page);
+  if(pageEl) pageEl.classList.add('active');
+  // Highlight correct nav item
+  const navItems = document.querySelectorAll('.nav-item');
+  const navPages = ['dashboard','roster','lineup','schedule','messages','teams'];
+  const idx = navPages.indexOf(page);
+  if(idx>=0 && navItems[idx]) navItems[idx].classList.add('active');
   if(window.innerWidth<=768)document.getElementById('sidebar').classList.remove('open');
   ({dashboard:loadDashboard,roster:loadRoster,schedule:loadSchedule,lineup:loadLineup,messages:loadMessages,teams:loadTeams,profile:loadProfilePage}[page]?.());
   updateTeamPills().catch(()=>{});
@@ -2720,7 +2724,6 @@ function highlightUnfilledPositions() {
 }
 
 // Update loadLineup to load active positions
-const origLoadLineup = loadLineup;
 
 async function saveCurrentLineup() {
   const sel = document.getElementById('game-selector');
@@ -2870,12 +2873,7 @@ function renderKickingOrder() {
   renderKickingOrderFiltered();
 }
 
-// Override loadLineup to also render attendance
-const origLoadLineup2 = loadLineup;
-async function loadLineup() {
-  await origLoadLineup2();
-  await renderAttendance();
-}
+// attendance rendered inside loadLineup directly
 
 // Update autoKick to skip absent players
 const origAutoKick = autoKick;
