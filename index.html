@@ -358,8 +358,8 @@ select.form-input{appearance:none;cursor:pointer;}
       <div class="sidebar-section-label">Menu</div>
       <button class="nav-item active" onclick="nav('dashboard')"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>Dashboard</button>
       <button class="nav-item" onclick="nav('roster')"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>Roster</button>
-      <button class="nav-item" onclick="nav('schedule')"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Schedule</button>
       <button class="nav-item" onclick="nav('lineup')"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>Lineup</button>
+      <button class="nav-item" onclick="nav('schedule')"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Schedule</button>
       <button class="nav-item" onclick="nav('messages')"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Messages</button>
       <button class="nav-item" onclick="nav('teams')"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>My Teams</button>
       <div class="sidebar-bottom">
@@ -3028,6 +3028,140 @@ function cycleDashAttendance(name, gameId, teamId) {
   localStorage.setItem(key, JSON.stringify(att));
   localStorage.setItem(keyGeneral, JSON.stringify(att));
   loadDashAttendance();
+}
+
+
+// ── PROFILE PAGE ──
+let photoDataUrl = null;
+
+async function loadProfilePage() {
+  const emailEl = document.getElementById('prof-email');
+  if (emailEl && user?.email) emailEl.value = user.email;
+
+  const { data, error } = await sb.from('profiles').select('*').eq('id', user.id).maybeSingle();
+  if (error) console.warn('Profile load error:', error.message);
+
+  // Load position prefs
+  selectedPosPrefs = data?.position_prefs ? JSON.parse(data.position_prefs) : [];
+  renderPosPrefsPicker();
+
+  if (!data) return;
+  profile = { ...profile, ...data };
+
+  const fields = {
+    'prof-first': data.first_name || '',
+    'prof-last': data.last_name || '',
+    'prof-email': user?.email || data.email || '',
+    'prof-phone': data.phone || '',
+    'prof-dob': data.dob || '',
+    'prof-street': data.street || '',
+    'prof-city': data.city || '',
+    'prof-state': data.state || '',
+    'prof-country': data.country || 'US',
+    'prof-zip': data.zip || '',
+    'profile-bio': data.bio || '',
+    'profile-instagram': data.instagram || '',
+    'profile-tiktok': data.tiktok || '',
+    'photo-url': data.photo_url || '',
+  };
+  Object.entries(fields).forEach(([id, val]) => {
+    const el = document.getElementById(id);
+    if (el) el.value = val;
+  });
+
+  updateProfileAvatar(data.photo_url, data.first_name || user.email);
+  updateZipState(data.country || 'US');
+}
+
+async function saveProfile() {
+  const saveBtn = document.querySelector('#page-profile .btn-accent');
+  if (saveBtn) { saveBtn.textContent = 'Saving...'; saveBtn.disabled = true; }
+
+  try {
+    const photoUrl = document.getElementById('photo-url')?.value.trim() || (photoDataUrl ? photoDataUrl : profile?.photo_url || null);
+    const first = document.getElementById('prof-first')?.value.trim() || '';
+    const last = document.getElementById('prof-last')?.value.trim() || '';
+
+    const updates = {
+      id: user.id,
+      first_name: first,
+      last_name: last,
+      full_name: (first + ' ' + last).trim(),
+      email: user.email,
+      phone: document.getElementById('prof-phone')?.value.trim() || null,
+      dob: document.getElementById('prof-dob')?.value || null,
+      street: document.getElementById('prof-street')?.value.trim() || null,
+      city: document.getElementById('prof-city')?.value.trim() || null,
+      state: document.getElementById('prof-state')?.value.trim() || null,
+      country: document.getElementById('prof-country')?.value.trim() || 'US',
+      zip: document.getElementById('prof-zip')?.value.trim() || null,
+      bio: document.getElementById('profile-bio')?.value.trim() || null,
+      instagram: document.getElementById('profile-instagram')?.value.trim() || null,
+      tiktok: document.getElementById('profile-tiktok')?.value.trim() || null,
+      photo_url: photoUrl,
+      position_prefs: JSON.stringify(selectedPosPrefs),
+    };
+
+    const { error } = await sb.from('profiles').upsert(updates);
+    if (error) { toast(error.message, 'error'); return; }
+
+    profile = { ...profile, ...updates };
+    document.getElementById('u-name').textContent = updates.full_name || user.email;
+    document.getElementById('u-avatar').textContent = (first || user.email).charAt(0).toUpperCase();
+    if (updates.photo_url) updateProfileAvatar(updates.photo_url, first);
+    toast('Profile saved!', 'success');
+  } catch(e) {
+    toast('Error: ' + e.message, 'error');
+  } finally {
+    if (saveBtn) { saveBtn.textContent = 'Save changes'; saveBtn.disabled = false; }
+  }
+}
+
+function updateProfileAvatar(photoUrl, name) {
+  const el = document.getElementById('profile-avatar-lg');
+  if (!el) return;
+  if (photoUrl) {
+    el.innerHTML = `<img src="${photoUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
+  } else {
+    el.textContent = (name || '?').charAt(0).toUpperCase();
+  }
+  document.getElementById('u-avatar').textContent = (name || '?').charAt(0).toUpperCase();
+}
+
+function previewPhoto(input) {
+  if (!input.files?.[0]) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    photoDataUrl = e.target.result;
+    document.getElementById('photo-url').value = '';
+    updateProfileAvatar(null, profile?.first_name);
+  };
+  reader.readAsDataURL(input.files[0]);
+}
+
+function previewPhotoUrl(url) {
+  if (!url) return;
+  photoDataUrl = null;
+  updateProfileAvatar(url, profile?.first_name);
+}
+
+function updateZipState(country) {
+  const zipEl = document.getElementById('prof-zip');
+  if (!zipEl) return;
+  const needsZip = ['US','CA'].includes((country||'').toUpperCase());
+  zipEl.disabled = !needsZip;
+  zipEl.style.opacity = needsZip ? '1' : '0.4';
+  zipEl.style.cursor = needsZip ? 'text' : 'not-allowed';
+  zipEl.placeholder = needsZip ? (country==='CA' ? 'A1A 1A1' : '02101') : 'N/A';
+}
+
+async function sendChangePassword() {
+  if (!user?.email) return;
+  const { error } = await sb.auth.resetPasswordForEmail(user.email, {
+    redirectTo: 'https://cavilac88.github.io/leaguesquad/'
+  });
+  if (error) { toast(error.message, 'error'); return; }
+  toast('Reset link sent to ' + user.email, 'success');
 }
 
 // COUNTRY AUTOCOMPLETE
