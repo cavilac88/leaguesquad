@@ -555,10 +555,13 @@ select.form-input{appearance:none;cursor:pointer;}
 
           <!-- RIGHT PANEL: Players + Kicking Order -->
           <div style="display:flex;flex-direction:column;gap:12px">
-            <!-- AVAILABLE PLAYERS -->
-            <div class="card" style="flex:1">
-              <div class="card-title">Players this inning</div>
-              <div id="available-players-list" style="display:flex;flex-direction:column;gap:5px;max-height:260px;overflow-y:auto"></div>
+            <!-- ATTENDANCE -->
+            <div class="card">
+              <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">
+                Attendance
+                <span id="attendance-count" style="font-size:11px;color:var(--text3)">0 present</span>
+              </div>
+              <div id="attendance-list" style="display:flex;flex-direction:column;gap:5px;max-height:220px;overflow-y:auto"></div>
             </div>
             <!-- KICKING ORDER -->
             <div class="card">
@@ -566,9 +569,14 @@ select.form-input{appearance:none;cursor:pointer;}
                 Kicking order
                 <button class="btn btn-ghost btn-sm" onclick="autoKick()">Randomize</button>
               </div>
-              <div class="kicking-list" id="kick-list" style="max-height:200px;overflow-y:auto">
+              <div class="kicking-list" id="kick-list" style="max-height:180px;overflow-y:auto">
                 <div class="empty-state"><p>Add players first</p></div>
               </div>
+            </div>
+            <!-- PLAYERS THIS INNING -->
+            <div class="card" style="flex:1">
+              <div class="card-title">Players this inning</div>
+              <div id="available-players-list" style="display:flex;flex-direction:column;gap:5px;max-height:160px;overflow-y:auto"></div>
             </div>
           </div>
         </div>
@@ -632,6 +640,14 @@ select.form-input{appearance:none;cursor:pointer;}
               </div>
             </div>
           </div>
+        </div>
+
+        <!-- POSITION PREFERENCES -->
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-title">Position preferences <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:11px;color:var(--text3)">(optional — helps your captain build the lineup)</span></div>
+          <p style="font-size:13px;color:var(--text2);margin-bottom:14px">Select up to 3 positions you prefer to play, in order.</p>
+          <div id="prof-pos-prefs" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;margin-bottom:14px"></div>
+          <div style="font-size:12px;color:var(--text3)">Selected: <span id="prof-pos-selected" style="color:var(--accent);font-weight:600">None</span></div>
         </div>
 
         <!-- PERSONAL INFO -->
@@ -882,7 +898,7 @@ select.form-input{appearance:none;cursor:pointer;}
 
 <!-- Lineup Settings Modal -->
 <div class="modal-overlay" id="m-lineup-settings">
-  <div class="modal">
+  <div class="modal" style="max-width:520px">
     <div class="modal-header"><div class="modal-title">Game settings</div><button class="modal-close" onclick="closeM('m-lineup-settings')">✕</button></div>
     <div class="form-row-2">
       <div class="form-group">
@@ -890,11 +906,15 @@ select.form-input{appearance:none;cursor:pointer;}
         <input class="form-input" type="number" id="cfg-innings-input" min="1" max="9" value="6">
       </div>
       <div class="form-group">
-        <label class="form-label">Players per inning</label>
+        <label class="form-label">Min players per inning</label>
         <input class="form-input" type="number" id="cfg-per-inning-input" min="1" max="15" value="10">
       </div>
     </div>
-    <p style="font-size:13px;color:var(--text2);margin-bottom:16px">The system will rotate all players equitably across all innings.</p>
+    <div class="form-group">
+      <label class="form-label">Active positions <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text3)">(toggle based on league rules)</span></label>
+      <div id="cfg-positions-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:7px;margin-top:6px"></div>
+    </div>
+    <p style="font-size:12px;color:var(--text3);margin-bottom:16px">Disabled positions won't appear in the lineup or auto-distribution.</p>
     <div style="display:flex;gap:10px">
       <button class="btn btn-ghost" style="flex:1;justify-content:center" onclick="closeM('m-lineup-settings')">Cancel</button>
       <button class="btn btn-accent" style="flex:2;justify-content:center" onclick="applyLineupSettings()">Apply</button>
@@ -1685,7 +1705,7 @@ function renderAvailablePlayers(inning) {
       <div class="avatar" style="width:26px;height:26px;font-size:10px;flex-shrink:0">${p.first_name.charAt(0)}</div>
       <div style="flex:1;min-width:0">
         <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${name}</div>
-        <div style="font-size:10px;color:var(--text3)">${isAssigned ? '📍 '+assignedPos : '🎯 '+prefText}</div>
+        <div style="font-size:10px;color:var(--text3)">${isAssigned ? '@ '+assignedPos : prefText}</div>
       </div>
       ${isAssigned ? `<button class="btn btn-danger btn-sm" style="font-size:10px;padding:3px 7px" onclick="unassignPlayer('${name}',${inning})">✕</button>` : ''}
     </div>`;
@@ -2746,6 +2766,472 @@ async function doTransferCaptaincy() {
   toast('Captaincy transferred!', 'success');
   await loadSidebarTeam();
   loadTeams();
+}
+
+
+// ── POSITION PREFERENCES (Profile) ──
+const ALL_POSITIONS = ['Pitcher','Catcher','1st Base','2nd Base','3rd Base','Shortstop','Left Field','Center Field','Right Field','Rover'];
+let selectedPosPrefs = [];
+
+function renderPosPrefsPicker() {
+  const container = document.getElementById('prof-pos-prefs');
+  if (!container) return;
+  container.innerHTML = ALL_POSITIONS.map(pos => {
+    const rank = selectedPosPrefs.indexOf(pos);
+    const selected = rank >= 0;
+    return `<button onclick="togglePosPref('${pos}')" style="padding:8px 10px;border-radius:9px;font-size:12px;font-weight:600;border:1px solid ${selected?'var(--accent)':'var(--border2)'};background:${selected?'var(--accent-t)':'var(--surface2)'};color:${selected?'var(--accent)':'var(--text2)'};cursor:pointer;transition:all 0.15s;position:relative">
+      ${pos}
+      ${selected ? `<span style="position:absolute;top:-6px;right:-6px;width:16px;height:16px;border-radius:50%;background:var(--accent);color:#fff;font-size:9px;display:flex;align-items:center;justify-content:center;font-weight:700">${rank+1}</span>` : ''}
+    </button>`;
+  }).join('');
+  document.getElementById('prof-pos-selected').textContent = 
+    selectedPosPrefs.length ? selectedPosPrefs.map((p,i) => (i+1)+'. '+p).join(', ') : 'None';
+}
+
+function togglePosPref(pos) {
+  const idx = selectedPosPrefs.indexOf(pos);
+  if (idx >= 0) {
+    selectedPosPrefs.splice(idx, 1);
+  } else if (selectedPosPrefs.length < 3) {
+    selectedPosPrefs.push(pos);
+  } else {
+    toast('Maximum 3 position preferences', 'error');
+    return;
+  }
+  renderPosPrefsPicker();
+}
+
+// Load prefs into profile page
+const origLoadProfilePage = loadProfilePage;
+async function loadProfilePage() {
+  await origLoadProfilePage();
+  // Load position prefs
+  const { data } = await sb.from('profiles').select('position_prefs').eq('id', user.id).maybeSingle();
+  selectedPosPrefs = data?.position_prefs ? JSON.parse(data.position_prefs) : [];
+  renderPosPrefsPicker();
+}
+
+// Hook into saveProfile to also save position prefs
+const origSaveProfile = saveProfile;
+async function saveProfile() {
+  // Add position_prefs to the save
+  const posPrefsEl = document.getElementById('prof-pos-prefs');
+  if (posPrefsEl) {
+    // Will be included via the updates object patch below
+  }
+  await origSaveProfile();
+  // Save position prefs separately
+  await sb.from('profiles').update({ position_prefs: JSON.stringify(selectedPosPrefs) }).eq('id', user.id);
+}
+
+// ── CONFIGURABLE POSITIONS ──
+let activePositions = [...ALL_POSITIONS];
+
+function renderPositionsConfig() {
+  const grid = document.getElementById('cfg-positions-grid');
+  if (!grid) return;
+  grid.innerHTML = ALL_POSITIONS.map(pos => {
+    const isActive = activePositions.includes(pos);
+    return `<button onclick="togglePosition('${pos}')" style="padding:8px 10px;border-radius:9px;font-size:12px;font-weight:500;border:1px solid ${isActive?'var(--accent)':'var(--border2)'};background:${isActive?'var(--accent-t)':'var(--surface2)'};color:${isActive?'var(--accent)':'var(--text3)'};cursor:pointer;transition:all 0.15s">
+      ${isActive ? '✓' : '—'} ${pos}
+    </button>`;
+  }).join('');
+}
+
+function togglePosition(pos) {
+  const idx = activePositions.indexOf(pos);
+  if (idx >= 0) {
+    if (activePositions.length <= 1) { toast('At least 1 position required', 'error'); return; }
+    activePositions.splice(idx, 1);
+  } else {
+    activePositions.push(pos);
+  }
+  saveActivePositions();
+  renderPositionsConfig();
+}
+
+function saveActivePositions() {
+  const teamId = localStorage.getItem('ls-active-team-' + user.id);
+  if (teamId) localStorage.setItem('lineup-positions-' + teamId, JSON.stringify(activePositions));
+}
+
+function loadActivePositions() {
+  const teamId = localStorage.getItem('ls-active-team-' + user.id);
+  if (teamId) {
+    const saved = localStorage.getItem('lineup-positions-' + teamId);
+    if (saved) activePositions = JSON.parse(saved);
+    else activePositions = [...ALL_POSITIONS];
+  }
+}
+
+// Override openM for lineup settings to render positions
+const origOpenM = openM;
+function openM(id) {
+  origOpenM(id);
+  if (id === 'm-lineup-settings') {
+    renderPositionsConfig();
+  }
+}
+
+// ── GAME HISTORY ──
+async function saveLineupForGame(gameId) {
+  if (!gameId) return;
+  const teamId = localStorage.getItem('ls-active-team-' + user.id);
+  await sb.from('game_lineups').upsert({
+    game_id: gameId,
+    team_id: teamId,
+    lineup_data: JSON.stringify(lineupData),
+    kicking_order: JSON.stringify(kickingOrder),
+    config: JSON.stringify(lineupConfig),
+    updated_by: user.id
+  }, { onConflict: 'game_id,team_id' });
+  toast('Lineup saved for this game!', 'success');
+}
+
+async function loadLineupForGame(gameId) {
+  const teamId = localStorage.getItem('ls-active-team-' + user.id);
+  const { data } = await sb.from('game_lineups').select('*').eq('game_id', gameId).eq('team_id', teamId).maybeSingle();
+  if (data) {
+    lineupData = JSON.parse(data.lineup_data || '{}');
+    kickingOrder = JSON.parse(data.kicking_order || '[]');
+    lineupConfig = JSON.parse(data.config || '{}');
+    updateConfigBar();
+    buildInningSelector();
+    renderInningView(currentInning);
+    renderKickingOrder();
+    renderRotationTable();
+    toast('Lineup loaded!', 'success');
+  }
+}
+
+// ── ENHANCED AUTO-DISTRIBUTE ──
+// Override the existing autoDistribute with balanced version
+async function autoDistribute() {
+  if (!rosterPlayers.length) { toast('Add players to roster first', 'error'); return; }
+
+  const innings = lineupConfig.innings;
+  const perInning = Math.min(lineupConfig.perInning, activePositions.length);
+  const positions = activePositions.slice(0, perInning);
+
+  // Check minimum players
+  if (rosterPlayers.length < positions.length) {
+    toast(`Warning: Only ${rosterPlayers.length} players for ${positions.length} positions. Some positions will be empty.`, 'error');
+  }
+
+  const players = rosterPlayers.map(p => ({
+    name: (p.first_name + ' ' + (p.last_name||'')).trim(),
+    prefs: p.position_prefs ? JSON.parse(p.position_prefs) : [],
+    playCount: 0,
+    posHistory: {}
+  }));
+
+  lineupData = {};
+
+  for (let i = 1; i <= innings; i++) {
+    lineupData[i] = {};
+
+    // Sort by play count ascending (least played first) then shuffle ties
+    const sorted = [...players].sort((a, b) => {
+      if (a.playCount !== b.playCount) return a.playCount - b.playCount;
+      return Math.random() - 0.5;
+    });
+
+    const inningPlayers = sorted.slice(0, Math.min(perInning, sorted.length));
+    const posToFill = [...positions];
+    const assignedPlayers = new Set();
+
+    // First pass: honor 1st preferences
+    inningPlayers.forEach(player => {
+      if (player.prefs[0] && posToFill.includes(player.prefs[0]) && !lineupData[i][player.prefs[0]]) {
+        lineupData[i][player.prefs[0]] = player.name;
+        assignedPlayers.add(player.name);
+        player.playCount++;
+        player.posHistory[player.prefs[0]] = (player.posHistory[player.prefs[0]] || 0) + 1;
+      }
+    });
+
+    // Second pass: 2nd & 3rd preferences
+    inningPlayers.forEach(player => {
+      if (assignedPlayers.has(player.name)) return;
+      for (let pi = 1; pi < 3; pi++) {
+        const pref = player.prefs[pi];
+        if (pref && posToFill.includes(pref) && !lineupData[i][pref]) {
+          lineupData[i][pref] = player.name;
+          assignedPlayers.add(player.name);
+          player.playCount++;
+          player.posHistory[pref] = (player.posHistory[pref] || 0) + 1;
+          break;
+        }
+      }
+    });
+
+    // Third pass: fill remaining with least-used positions
+    const unfilledPos = posToFill.filter(p => !lineupData[i][p]);
+    const unassigned = inningPlayers.filter(p => !assignedPlayers.has(p.name));
+
+    unassigned.forEach((player, idx) => {
+      if (idx >= unfilledPos.length) return;
+      // Pick position this player has played least
+      const pos = unfilledPos.sort((a, b) => (player.posHistory[a]||0) - (player.posHistory[b]||0))[idx] || unfilledPos[idx];
+      if (pos) {
+        lineupData[i][pos] = player.name;
+        player.playCount++;
+        player.posHistory[pos] = (player.posHistory[pos] || 0) + 1;
+        assignedPlayers.add(player.name);
+      }
+    });
+
+    // Update original players
+    players.forEach(p => {
+      const found = inningPlayers.find(ip => ip.name === p.name);
+      if (found) { p.playCount = found.playCount; p.posHistory = found.posHistory; }
+    });
+  }
+
+  // Check for unfilled positions and warn
+  let unfilledCount = 0;
+  for (let i = 1; i <= innings; i++) {
+    positions.forEach(pos => { if (!lineupData[i][pos]) unfilledCount++; });
+  }
+  if (unfilledCount > 0) {
+    toast(`Lineup distributed! ${unfilledCount} position(s) couldn\'t be filled — check roster size.`, 'success');
+  } else {
+    toast('Lineup perfectly distributed across ' + innings + ' innings!', 'success');
+  }
+
+  saveLineupConfig();
+  renderInningView(currentInning);
+  renderRotationTable();
+  highlightUnfilledPositions();
+}
+
+function highlightUnfilledPositions() {
+  // Flash unfilled positions in red on the SVG
+  activePositions.forEach(pos => {
+    const assignments = lineupData[currentInning] || {};
+    const circle = document.querySelector('#fpos-' + CSS.escape(pos) + ' circle');
+    if (!circle) return;
+    if (!assignments[pos]) {
+      circle.setAttribute('stroke', '#EF4444');
+      circle.setAttribute('stroke-width', '2.5');
+      setTimeout(() => {
+        circle.setAttribute('stroke', 'rgba(255,255,255,0.2)');
+        circle.setAttribute('stroke-width', '1.5');
+      }, 2000);
+    }
+  });
+}
+
+// Update loadLineup to load active positions
+const origLoadLineup = loadLineup;
+async function loadLineup() {
+  loadActivePositions();
+  await origLoadLineup();
+  renderPosPrefsPicker();
+
+  // Add game selector to lineup page if games exist
+  const { data: games } = await sb.from('games').select('id,opponent,game_date').gte('game_date', new Date(Date.now()-7*86400000).toISOString().split('T')[0]).order('game_date').limit(10);
+  if (games?.length) {
+    const bar = document.getElementById('lineup-config-bar');
+    if (bar && !document.getElementById('game-selector')) {
+      const gameSelect = document.createElement('div');
+      gameSelect.style.cssText = 'display:flex;align-items:center;gap:8px;margin-left:auto';
+      gameSelect.innerHTML = `<span style="font-size:12px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:0.05em">Game</span>
+        <select id="game-selector" class="form-input" style="font-size:13px;padding:6px 10px;width:auto" onchange="loadLineupForGame(this.value)">
+          <option value="">Select game...</option>
+          ${games.map(g => `<option value="${g.id}">${g.opponent} — ${fmtDate(g.game_date)}</option>`).join('')}
+        </select>
+        <button class="btn btn-ghost btn-sm" onclick="saveCurrentLineup()">Save lineup</button>`;
+      bar.appendChild(gameSelect);
+    }
+  }
+}
+
+async function saveCurrentLineup() {
+  const sel = document.getElementById('game-selector');
+  if (!sel?.value) { toast('Select a game first', 'error'); return; }
+  await saveLineupForGame(sel.value);
+}
+
+// Update applyLineupSettings to include active positions
+const origApplySettings = applyLineupSettings;
+function applyLineupSettings() {
+  // activePositions already updated via togglePosition
+  origApplySettings();
+}
+
+
+// ── ATTENDANCE SYSTEM ──
+let attendance = {}; // { playerName: 'present' | 'absent' }
+
+function loadAttendance() {
+  const teamId = localStorage.getItem('ls-active-team-' + user.id);
+  const gameId = document.getElementById('game-selector')?.value;
+  const key = 'attendance-' + teamId + (gameId ? '-' + gameId : '');
+  const saved = localStorage.getItem(key);
+  attendance = saved ? JSON.parse(saved) : {};
+}
+
+function saveAttendance() {
+  const teamId = localStorage.getItem('ls-active-team-' + user.id);
+  const gameId = document.getElementById('game-selector')?.value;
+  const key = 'attendance-' + teamId + (gameId ? '-' + gameId : '');
+  localStorage.setItem(key, JSON.stringify(attendance));
+}
+
+async function renderAttendance() {
+  loadAttendance();
+  const list = document.getElementById('attendance-list');
+  const countEl = document.getElementById('attendance-count');
+  if (!list) return;
+
+  if (!rosterPlayers.length) {
+    list.innerHTML = '<div class="empty-state"><p>No players on roster</p></div>';
+    return;
+  }
+
+  // Load RSVPs for selected game
+  let rsvpMap = {};
+  const gameId = document.getElementById('game-selector')?.value;
+  if (gameId) {
+    const { data: rsvps } = await sb.from('rsvps').select('user_id, status').eq('game_id', gameId);
+    if (rsvps) rsvps.forEach(r => { rsvpMap[r.user_id] = r.status; });
+  }
+
+  // Default attendance from RSVP if not manually set
+  rosterPlayers.forEach(p => {
+    const name = (p.first_name + ' ' + (p.last_name||'')).trim();
+    if (!attendance[name]) {
+      const rsvp = rsvpMap[p.id];
+      if (rsvp === 'no') attendance[name] = 'absent';
+      else if (rsvp === 'yes') attendance[name] = 'present';
+      // maybe/no rsvp = unknown, defaults to present for lineup purposes
+    }
+  });
+
+  const presentCount = rosterPlayers.filter(p => {
+    const name = (p.first_name + ' ' + (p.last_name||'')).trim();
+    return attendance[name] !== 'absent';
+  }).length;
+
+  if (countEl) countEl.textContent = presentCount + ' / ' + rosterPlayers.length + ' present';
+
+  list.innerHTML = rosterPlayers.map(p => {
+    const name = (p.first_name + ' ' + (p.last_name||'')).trim();
+    const status = attendance[name] || 'present';
+    const isPresent = status === 'present';
+
+    return `<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:9px;background:var(--surface2);opacity:${isPresent?'1':'0.5'}">
+      <div class="avatar" style="width:26px;height:26px;font-size:10px;flex-shrink:0;background:${isPresent?'linear-gradient(135deg,var(--accent),var(--accent2))':'var(--surface3)'}">${p.first_name.charAt(0)}</div>
+      <div style="flex:1;font-size:13px;font-weight:500;${isPresent?'':'text-decoration:line-through;color:var(--text3)'}">${name}</div>
+      <div style="display:flex;gap:4px">
+        <button onclick="setAttendance('${name}','present')" style="padding:3px 8px;border-radius:6px;font-size:11px;font-weight:600;border:1px solid ${isPresent?'var(--success)':'var(--border2)'};background:${isPresent?'rgba(16,185,129,0.12)':'transparent'};color:${isPresent?'#10B981':'var(--text3)'};cursor:pointer">In</button>
+        <button onclick="setAttendance('${name}','absent')" style="padding:3px 8px;border-radius:6px;font-size:11px;font-weight:600;border:1px solid ${!isPresent?'var(--danger)':'var(--border2)'};background:${!isPresent?'rgba(239,68,68,0.1)':'transparent'};color:${!isPresent?'#EF4444':'var(--text3)'};cursor:pointer">Out</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function setAttendance(playerName, status) {
+  attendance[playerName] = status;
+  saveAttendance();
+  renderAttendance();
+  renderKickingOrderFiltered();
+  // Remove absent player from current inning assignments
+  if (status === 'absent') {
+    Object.keys(lineupData).forEach(inning => {
+      Object.keys(lineupData[inning] || {}).forEach(pos => {
+        if (lineupData[inning][pos] === playerName) {
+          delete lineupData[inning][pos];
+        }
+      });
+    });
+    saveLineupConfig();
+    renderInningView(currentInning);
+    renderRotationTable();
+  }
+}
+
+function renderKickingOrderFiltered() {
+  const list = document.getElementById('kick-list');
+  if (!list) return;
+  
+  if (!kickingOrder.length) {
+    list.innerHTML = '<div class="empty-state"><p>Use Randomize to set kicking order</p></div>';
+    return;
+  }
+
+  // Filter out absent players
+  const presentOrder = kickingOrder.filter(name => attendance[name] !== 'absent');
+  const absentPlayers = kickingOrder.filter(name => attendance[name] === 'absent');
+
+  if (!presentOrder.length) {
+    list.innerHTML = '<div class="empty-state"><p>No present players</p></div>';
+    return;
+  }
+
+  list.innerHTML = presentOrder.map((name, i) => `
+    <div class="kicking-item">
+      <div class="kick-num">${i+1}</div>
+      <div class="kick-name">${name}</div>
+    </div>`).join('') +
+    (absentPlayers.length ? `
+    <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border2)">
+      <div style="font-size:10px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px">Absent</div>
+      ${absentPlayers.map(name => `<div style="padding:5px 8px;font-size:12px;color:var(--text3);text-decoration:line-through">${name}</div>`).join('')}
+    </div>` : '');
+}
+
+// Override renderKickingOrder to use filtered version
+const origRenderKicking = renderKickingOrder;
+function renderKickingOrder() {
+  renderKickingOrderFiltered();
+}
+
+// Override loadLineup to also render attendance
+const origLoadLineup2 = loadLineup;
+async function loadLineup() {
+  await origLoadLineup2();
+  await renderAttendance();
+}
+
+// Update autoKick to skip absent players
+const origAutoKick = autoKick;
+async function autoKick() {
+  if (!rosterPlayers.length) { toast('Add players to roster first', 'error'); return; }
+  const allNames = rosterPlayers.map(p => (p.first_name + ' ' + (p.last_name||'')).trim());
+  // Separate present and absent
+  const present = allNames.filter(n => attendance[n] !== 'absent');
+  const absent = allNames.filter(n => attendance[n] === 'absent');
+  // Shuffle present players
+  const shuffled = present.sort(() => Math.random() - 0.5);
+  // Full order: present (shuffled) + absent at end
+  kickingOrder = [...shuffled, ...absent];
+  saveLineupConfig();
+  renderKickingOrderFiltered();
+  toast('Kicking order randomized — ' + present.length + ' active players', 'success');
+}
+
+// Also filter auto-distribute to only use present players
+const origAutoDistribute = autoDistribute;
+async function autoDistribute() {
+  loadAttendance();
+  // Filter to present players only
+  const presentPlayers = rosterPlayers.filter(p => {
+    const name = (p.first_name + ' ' + (p.last_name||'')).trim();
+    return attendance[name] !== 'absent';
+  });
+  
+  if (!presentPlayers.length) { toast('No present players to distribute', 'error'); return; }
+  
+  const absentCount = rosterPlayers.length - presentPlayers.length;
+  if (absentCount > 0) toast(absentCount + ' absent player(s) excluded from distribution', 'success');
+  
+  // Temporarily override rosterPlayers for distribution
+  const allPlayers = rosterPlayers;
+  rosterPlayers = presentPlayers;
+  await origAutoDistribute();
+  rosterPlayers = allPlayers;
 }
 
 // COUNTRY AUTOCOMPLETE
