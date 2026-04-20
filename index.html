@@ -1335,19 +1335,6 @@ async function doRsvp(status){
 }
 
 // LINEUP
-async function loadLineup(){
-  const{data:players}=await sb.from('players').select('*').order('first_name');
-  const{data:asgn}=await sb.from('lineup').select('*');
-  const sport=players?.[0]?.sport||'kickball';
-  const pos=POSITIONS[sport]||POSITIONS.kickball;
-  const map={};(asgn||[]).forEach(a=>{map[a.position]=a.player_name;});
-  document.getElementById('pos-grid').innerHTML=pos.filter(p=>p).map(p=>`<div class="position-slot ${map[p]?'filled':''}" onclick="assignPos('${p}',${JSON.stringify(players||[])})"><div class="position-name">${p}</div><div class="position-player">${map[p]||'+'}</div></div>`).join('');
-  const{data:kicks}=await sb.from('kicking_order').select('*').order('order_num');
-  const kl=document.getElementById('kick-list');
-  if(!players?.length){kl.innerHTML='<div class="empty-state"><p>Add players first</p></div>';return;}
-  if(!kicks?.length){kl.innerHTML='<div class="empty-state"><p>Use Auto-assign</p></div>';return;}
-  kl.innerHTML=kicks.map(k=>`<div class="kicking-item"><div class="kick-num">${k.order_num}</div><div class="kick-name">${k.player_name}</div></div>`).join('');
-}
 
 async function assignPos(pos,players){
   if(!players.length)return;
@@ -1359,14 +1346,6 @@ async function assignPos(pos,players){
   toast(`${names[idx]} → ${pos}`,'success');loadLineup();
 }
 
-async function autoKick(){
-  const{data:players}=await sb.from('players').select('*').order('first_name');
-  if(!players?.length){toast('Add players first','error');return;}
-  const shuffled=[...players].sort(()=>Math.random()-0.5);
-  await sb.from('kicking_order').delete().neq('id','00000000-0000-0000-0000-000000000000');
-  await sb.from('kicking_order').insert(shuffled.map((p,i)=>({order_num:i+1,player_name:`${p.first_name} ${p.last_name||''}`.trim(),player_id:p.id})));
-  toast('Kicking order randomized!','success');loadLineup();
-}
 
 // MESSAGES
 async function loadMessages(){
@@ -1415,43 +1394,6 @@ const fmtTime=ts=>new Date(ts).toLocaleDateString('en-US',{month:'short',day:'nu
 // ── PROFILE PAGE ──
 let photoDataUrl = null;
 
-async function loadProfilePage() {
-  const { data } = await sb.from('profiles').select('*').eq('id', user.id).single();
-  if (!data) return;
-  profile = data;
-
-  // Fill fields
-  // Always set email from auth session first
-  const emailEl = document.getElementById('prof-email');
-  if (emailEl) emailEl.value = user?.email || data.email || '';
-
-  const fields = {
-    'prof-first': data.first_name || '',
-    'prof-last':  data.last_name  || '',
-    'prof-email': user?.email || data.email || '',
-    'prof-phone': data.phone      || '',
-    'prof-dob':   data.dob        || '',
-    'prof-street':data.street     || '',
-    'prof-city':  data.city       || '',
-    'prof-state': data.state      || '',
-    'prof-country': data.country  || 'US',
-    'prof-zip':   data.zip        || '',
-    'profile-bio': data.bio       || '',
-    'profile-instagram': data.instagram || '',
-    'profile-tiktok': data.tiktok || '',
-    'photo-url':  data.photo_url  || '',
-  };
-  Object.entries(fields).forEach(([id, val]) => {
-    const el = document.getElementById(id);
-    if (el) el.value = val;
-  });
-
-  // Avatar
-  updateProfileAvatar(data.photo_url, data.first_name || user.email);
-
-  // ZIP state
-  updateZipState(data.country || 'US');
-}
 
 function updateProfileAvatar(photoUrl, name) {
   const el = document.getElementById('profile-avatar-lg');
@@ -1501,56 +1443,6 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 let isSaving = false;
-async function saveProfile() {
-  if (isSaving) return;
-  isSaving = true;
-  const saveBtn = document.querySelector('#page-profile .btn-accent');
-  if (saveBtn) { saveBtn.textContent = 'Saving...'; saveBtn.disabled = true; }
-  try {
-    const photoUrl = document.getElementById('photo-url').value.trim() || (photoDataUrl ? photoDataUrl : profile?.photo_url || null);
-    const first = document.getElementById('prof-first').value.trim();
-    const last  = document.getElementById('prof-last').value.trim();
-    const updates = {
-      id:         user.id,
-      first_name: first,
-      last_name:  last,
-      full_name:  (first + ' ' + last).trim(),
-      email:      user.email,
-      phone:      document.getElementById('prof-phone').value.trim() || null,
-      dob:        document.getElementById('prof-dob').value || null,
-      street:     document.getElementById('prof-street').value.trim() || null,
-      city:       document.getElementById('prof-city').value.trim() || null,
-      state:      document.getElementById('prof-state').value.trim() || null,
-      country:    document.getElementById('prof-country').value.trim() || 'US',
-      zip:        document.getElementById('prof-zip').value.trim() || null,
-      bio:        document.getElementById('profile-bio').value.trim() || null,
-      instagram:  document.getElementById('profile-instagram').value.trim() || null,
-      tiktok:     document.getElementById('profile-tiktok').value.trim() || null,
-      photo_url:  photoUrl,
-    };
-    // Use upsert with explicit id to avoid lock conflicts
-    // Try update first, insert if not exists
-    let error;
-    const { error: updateErr } = await sb.from('profiles').update(updates).eq('id', user.id);
-    if (updateErr && updateErr.code === 'PGRST116') {
-      const { error: insertErr } = await sb.from('profiles').insert(updates);
-      error = insertErr;
-    } else {
-      error = updateErr;
-    }
-    if (error) { toast(error.message, 'error'); return; }
-    profile = { ...profile, ...updates };
-    document.getElementById('u-name').textContent = updates.full_name || user.email;
-    document.getElementById('u-avatar').textContent = (first || user.email).charAt(0).toUpperCase();
-    if (updates.photo_url) updateProfileAvatar(updates.photo_url, first);
-    toast('Profile saved!', 'success');
-  } catch(e) {
-    toast('Error saving: ' + e.message, 'error');
-  } finally {
-    isSaving = false;
-    if (saveBtn) { saveBtn.textContent = 'Save changes'; saveBtn.disabled = false; }
-  }
-}
 
 async function uploadPhoto() {
   // For now store as base64 URL — Supabase Storage can be added later
@@ -1602,31 +1494,6 @@ let currentInning = 1;
 let rosterPlayers = [];
 let kickingOrder = [];
 
-async function loadLineup() {
-  // Load all players
-  const { data: players } = await sb.from('players').select('*').order('first_name');
-  rosterPlayers = players || [];
-
-  document.getElementById('cfg-roster-count').textContent = rosterPlayers.length;
-
-  // Load saved lineup config
-  const teamId = localStorage.getItem('ls-active-team-' + user.id);
-  if (teamId) {
-    const saved = localStorage.getItem('lineup-config-' + teamId);
-    if (saved) lineupConfig = JSON.parse(saved);
-    const savedData = localStorage.getItem('lineup-data-' + teamId);
-    if (savedData) lineupData = JSON.parse(savedData);
-    const savedKick = localStorage.getItem('kicking-order-' + teamId);
-    if (savedKick) kickingOrder = JSON.parse(savedKick);
-  }
-
-  // Update config display
-  updateConfigBar();
-  buildInningSelector();
-  renderInningView(currentInning);
-  renderKickingOrder();
-  renderRotationTable();
-}
 
 function updateConfigBar() {
   document.getElementById('cfg-innings').textContent = lineupConfig.innings;
@@ -1647,16 +1514,6 @@ function buildInningSelector() {
   }
 }
 
-function applyLineupSettings() {
-  lineupConfig.innings = parseInt(document.getElementById('cfg-innings-input').value) || 6;
-  lineupConfig.perInning = parseInt(document.getElementById('cfg-per-inning-input').value) || 10;
-  saveLineupConfig();
-  updateConfigBar();
-  buildInningSelector();
-  renderRotationTable();
-  closeM('m-lineup-settings');
-  toast('Game settings updated!', 'success');
-}
 
 function saveLineupConfig() {
   const teamId = localStorage.getItem('ls-active-team-' + user.id);
@@ -1807,66 +1664,6 @@ function clearInning() {
 }
 
 // AUTO-DISTRIBUTE — respects preferences, ensures everyone plays
-function autoDistribute() {
-  if (!rosterPlayers.length) { toast('Add players to roster first', 'error'); return; }
-
-  const innings = lineupConfig.innings;
-  const perInning = lineupConfig.perInning;
-  const players = rosterPlayers.map(p => ({
-    name: (p.first_name + ' ' + (p.last_name||'')).trim(),
-    prefs: p.position_prefs ? JSON.parse(p.position_prefs) : [],
-    playCount: 0
-  }));
-
-  lineupData = {};
-
-  for (let i = 1; i <= innings; i++) {
-    lineupData[i] = {};
-    const positions = KB_POSITIONS.slice(0, perInning);
-
-    // Sort players by play count (least played first)
-    const sorted = [...players].sort((a, b) => a.playCount - b.playCount);
-    const inningPlayers = sorted.slice(0, perInning);
-
-    // Assign by preference
-    const assigned = new Set();
-    const posToFill = [...positions];
-
-    // First pass: assign preferred positions
-    inningPlayers.forEach(player => {
-      for (const pref of player.prefs) {
-        if (posToFill.includes(pref) && !assigned.has(pref)) {
-          lineupData[i][pref] = player.name;
-          assigned.add(pref);
-          player.playCount++;
-          break;
-        }
-      }
-    });
-
-    // Second pass: fill remaining positions
-    const unassignedPlayers = inningPlayers.filter(p => !Object.values(lineupData[i]).includes(p.name));
-    const unfilledPos = posToFill.filter(pos => !assigned.has(pos));
-
-    unassignedPlayers.forEach((player, idx) => {
-      if (idx < unfilledPos.length) {
-        lineupData[i][unfilledPos[idx]] = player.name;
-        player.playCount++;
-      }
-    });
-
-    // Update original players play count
-    players.forEach(p => {
-      const found = inningPlayers.find(ip => ip.name === p.name);
-      if (found) p.playCount = found.playCount;
-    });
-  }
-
-  saveLineupConfig();
-  renderInningView(currentInning);
-  renderRotationTable();
-  toast('Lineup auto-distributed across ' + innings + ' innings!', 'success');
-}
 
 // ROTATION TABLE
 function renderRotationTable() {
@@ -1899,27 +1696,7 @@ function renderRotationTable() {
 }
 
 // KICKING ORDER
-function renderKickingOrder() {
-  const list = document.getElementById('kick-list');
-  if (!kickingOrder.length) {
-    list.innerHTML = '<div class="empty-state"><p>Use Randomize to set kicking order</p></div>';
-    return;
-  }
-  list.innerHTML = kickingOrder.map((name, i) => `
-    <div class="kicking-item">
-      <div class="kick-num">${i+1}</div>
-      <div class="kick-name">${name}</div>
-    </div>`).join('');
-}
 
-async function autoKick() {
-  if (!rosterPlayers.length) { toast('Add players to roster first', 'error'); return; }
-  const names = rosterPlayers.map(p => (p.first_name + ' ' + (p.last_name||'')).trim());
-  kickingOrder = names.sort(() => Math.random() - 0.5);
-  saveLineupConfig();
-  renderKickingOrder();
-  toast('Kicking order randomized!', 'success');
-}
 
 // ── ONBOARDING ──
 let selectedTeamColor = '#FF7F50';
@@ -2134,46 +1911,6 @@ function updateSidebarTeam(team) {
 // loadSidebarTeam replaced below
 
 // ── TEAMS PAGE ──
-async function loadTeams() {
-  const { data: memberships } = await sb.from('team_members').select('role, teams(*)').eq('user_id', user.id);
-  const container = document.getElementById('teams-list');
-  if (!memberships?.length) {
-    container.innerHTML = '<div class="empty-state card"><div class="empty-icon">🏅</div><p>No teams yet — create or join one!</p></div>';
-    return;
-  }
-  const activeTeamId = localStorage.getItem('ls-active-team-' + user.id);
-  container.innerHTML = memberships.map(m => {
-    const t = m.teams;
-    const isActive = t.id === activeTeamId;
-    return `
-    <div class="card" style="border:${isActive ? '2px solid ' + (t.color || 'var(--accent)') : '1px solid var(--border2)'};position:relative;cursor:pointer" onclick="setActiveTeam('${t.id}','${m.role}')">
-      ${isActive ? '<div style="position:absolute;top:12px;right:12px;font-size:11px;font-weight:700;color:'+t.color+';text-transform:uppercase;letter-spacing:0.05em">Active</div>' : ''}
-      <div style="display:flex;align-items:center;gap:14px;margin-bottom:14px">
-        <div style="width:52px;height:52px;border-radius:12px;background:${t.color||'var(--accent)'};display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:#fff;flex-shrink:0">${t.initials||t.name.charAt(0)}</div>
-        <div>
-          <div style="font-size:16px;font-weight:600">${t.name}</div>
-          <div style="font-size:12px;color:var(--text2)">${t.sport} ${t.league ? '· '+t.league : ''}</div>
-        </div>
-      </div>
-      <div style="display:flex;gap:6px;align-items:center;justify-content:space-between">
-        <span class="badge ${m.role==='captain'?'badge-accent':'badge-gray'}">${m.role}</span>
-        <div style="display:flex;align-items:center;gap:6px">
-          <span style="font-size:11px;color:var(--text3)">Code:</span>
-          <span style="font-family:'DM Mono',monospace;font-size:13px;font-weight:600;color:var(--accent);letter-spacing:0.05em">${t.code}</span>
-          <button class="btn btn-ghost btn-sm" onclick="copyCode(event,'${t.code}')">Copy</button>
-        </div>
-      </div>
-      ${m.role==='captain' ? `
-      <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border2)">
-        <div style="font-size:12px;color:var(--text3);margin-bottom:6px">Invite link:</div>
-        <div style="display:flex;gap:6px">
-          <input class="form-input" readonly value="https://cavilac88.github.io/leaguesquad/?join=${t.code}" style="font-size:11px;padding:6px 10px">
-          <button class="btn btn-ghost btn-sm" onclick="copyLink(event,'${t.code}')">Copy</button>
-        </div>
-      </div>` : ''}
-    </div>`;
-  }).join('');
-}
 
 async function setActiveTeam(teamId, role) {
   localStorage.setItem('ls-active-team-' + user.id, teamId);
@@ -2927,104 +2664,6 @@ async function loadLineupForGame(gameId) {
 
 // ── ENHANCED AUTO-DISTRIBUTE ──
 // Override the existing autoDistribute with balanced version
-async function autoDistribute() {
-  if (!rosterPlayers.length) { toast('Add players to roster first', 'error'); return; }
-
-  const innings = lineupConfig.innings;
-  const perInning = Math.min(lineupConfig.perInning, activePositions.length);
-  const positions = activePositions.slice(0, perInning);
-
-  // Check minimum players
-  if (rosterPlayers.length < positions.length) {
-    toast(`Warning: Only ${rosterPlayers.length} players for ${positions.length} positions. Some positions will be empty.`, 'error');
-  }
-
-  const players = rosterPlayers.map(p => ({
-    name: (p.first_name + ' ' + (p.last_name||'')).trim(),
-    prefs: p.position_prefs ? JSON.parse(p.position_prefs) : [],
-    playCount: 0,
-    posHistory: {}
-  }));
-
-  lineupData = {};
-
-  for (let i = 1; i <= innings; i++) {
-    lineupData[i] = {};
-
-    // Sort by play count ascending (least played first) then shuffle ties
-    const sorted = [...players].sort((a, b) => {
-      if (a.playCount !== b.playCount) return a.playCount - b.playCount;
-      return Math.random() - 0.5;
-    });
-
-    const inningPlayers = sorted.slice(0, Math.min(perInning, sorted.length));
-    const posToFill = [...positions];
-    const assignedPlayers = new Set();
-
-    // First pass: honor 1st preferences
-    inningPlayers.forEach(player => {
-      if (player.prefs[0] && posToFill.includes(player.prefs[0]) && !lineupData[i][player.prefs[0]]) {
-        lineupData[i][player.prefs[0]] = player.name;
-        assignedPlayers.add(player.name);
-        player.playCount++;
-        player.posHistory[player.prefs[0]] = (player.posHistory[player.prefs[0]] || 0) + 1;
-      }
-    });
-
-    // Second pass: 2nd & 3rd preferences
-    inningPlayers.forEach(player => {
-      if (assignedPlayers.has(player.name)) return;
-      for (let pi = 1; pi < 3; pi++) {
-        const pref = player.prefs[pi];
-        if (pref && posToFill.includes(pref) && !lineupData[i][pref]) {
-          lineupData[i][pref] = player.name;
-          assignedPlayers.add(player.name);
-          player.playCount++;
-          player.posHistory[pref] = (player.posHistory[pref] || 0) + 1;
-          break;
-        }
-      }
-    });
-
-    // Third pass: fill remaining with least-used positions
-    const unfilledPos = posToFill.filter(p => !lineupData[i][p]);
-    const unassigned = inningPlayers.filter(p => !assignedPlayers.has(p.name));
-
-    unassigned.forEach((player, idx) => {
-      if (idx >= unfilledPos.length) return;
-      // Pick position this player has played least
-      const pos = unfilledPos.sort((a, b) => (player.posHistory[a]||0) - (player.posHistory[b]||0))[idx] || unfilledPos[idx];
-      if (pos) {
-        lineupData[i][pos] = player.name;
-        player.playCount++;
-        player.posHistory[pos] = (player.posHistory[pos] || 0) + 1;
-        assignedPlayers.add(player.name);
-      }
-    });
-
-    // Update original players
-    players.forEach(p => {
-      const found = inningPlayers.find(ip => ip.name === p.name);
-      if (found) { p.playCount = found.playCount; p.posHistory = found.posHistory; }
-    });
-  }
-
-  // Check for unfilled positions and warn
-  let unfilledCount = 0;
-  for (let i = 1; i <= innings; i++) {
-    positions.forEach(pos => { if (!lineupData[i][pos]) unfilledCount++; });
-  }
-  if (unfilledCount > 0) {
-    toast(`Lineup distributed! ${unfilledCount} position(s) couldn\'t be filled — check roster size.`, 'success');
-  } else {
-    toast('Lineup perfectly distributed across ' + innings + ' innings!', 'success');
-  }
-
-  saveLineupConfig();
-  renderInningView(currentInning);
-  renderRotationTable();
-  highlightUnfilledPositions();
-}
 
 function highlightUnfilledPositions() {
   // Flash unfilled positions in red on the SVG
@@ -3045,28 +2684,6 @@ function highlightUnfilledPositions() {
 
 // Update loadLineup to load active positions
 const origLoadLineup = loadLineup;
-async function loadLineup() {
-  loadActivePositions();
-  await origLoadLineup();
-  renderPosPrefsPicker();
-
-  // Add game selector to lineup page if games exist
-  const { data: games } = await sb.from('games').select('id,opponent,game_date').gte('game_date', new Date(Date.now()-7*86400000).toISOString().split('T')[0]).order('game_date').limit(10);
-  if (games?.length) {
-    const bar = document.getElementById('lineup-config-bar');
-    if (bar && !document.getElementById('game-selector')) {
-      const gameSelect = document.createElement('div');
-      gameSelect.style.cssText = 'display:flex;align-items:center;gap:8px;margin-left:auto';
-      gameSelect.innerHTML = `<span style="font-size:12px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:0.05em">Game</span>
-        <select id="game-selector" class="form-input" style="font-size:13px;padding:6px 10px;width:auto" onchange="loadLineupForGame(this.value)">
-          <option value="">Select game...</option>
-          ${games.map(g => `<option value="${g.id}">${g.opponent} — ${fmtDate(g.game_date)}</option>`).join('')}
-        </select>
-        <button class="btn btn-ghost btn-sm" onclick="saveCurrentLineup()">Save lineup</button>`;
-      bar.appendChild(gameSelect);
-    }
-  }
-}
 
 async function saveCurrentLineup() {
   const sel = document.getElementById('game-selector');
