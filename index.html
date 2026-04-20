@@ -991,50 +991,48 @@ async function doLogin(){
 async function enterApp(u) {
   user = u;
 
-  // Load profile from DB first — always use saved name over auth metadata
-  const { data: dbProfile } = await sb.from('profiles').select('*').eq('id', u.id).maybeSingle();
-
+  // Set basic profile immediately from auth — no waiting
   profile = {
-    full_name: dbProfile?.full_name || u.user_metadata?.full_name || u.email,
-    first_name: dbProfile?.first_name || u.user_metadata?.full_name?.split(' ')[0] || u.email.split('@')[0],
-    role: dbProfile?.role || u.user_metadata?.role || 'player',
-    email: u.email,
-    ...dbProfile
+    full_name: u.user_metadata?.full_name || u.email,
+    first_name: u.user_metadata?.full_name?.split(' ')[0] || u.email.split('@')[0],
+    role: u.user_metadata?.role || 'player',
+    email: u.email
   };
 
   document.getElementById('u-name').textContent = profile.full_name;
   document.getElementById('u-role').textContent = profile.role;
-  document.getElementById('u-avatar').textContent = (profile.first_name || profile.full_name || u.email).charAt(0).toUpperCase();
+  document.getElementById('u-avatar').textContent = profile.full_name.charAt(0).toUpperCase();
   document.getElementById('greeting').textContent = 'Welcome back, ' + profile.first_name + '!';
 
-  // Load full profile in background
-  loadProfile().catch(e => console.warn('Profile load:', e.message));
-  // Load sidebar team
-  loadSidebarTeam().catch(e=>console.warn('sidebar team:', e.message));
-  updateTeamPills().catch(()=>{});
-
-  // Check for join link first
+  // Check for join link
   const params = new URLSearchParams(window.location.search);
   const joinCode = params.get('join');
   if (joinCode) {
     window.history.replaceState(null, '', window.location.pathname);
     document.getElementById('jt-code').value = joinCode.toUpperCase();
-    openM('m-join-team');
     showApp();
+    openM('m-join-team');
     return;
   }
 
   // Show onboarding only for new users (no teams yet)
   const onboardingDone = localStorage.getItem('ls-onboarding-done-' + u.id);
   if (!onboardingDone) {
-    const { count } = await sb.from('team_members').select('*', {count:'exact',head:true}).eq('user_id', u.id);
-    if (!count) {
-      showOnboarding();
-      return;
-    }
-    localStorage.setItem('ls-onboarding-done-' + u.id, '1');
+    try {
+      const { count } = await sb.from('team_members').select('*', {count:'exact',head:true}).eq('user_id', u.id);
+      if (!count) { showOnboarding(); return; }
+      localStorage.setItem('ls-onboarding-done-' + u.id, '1');
+    } catch(e) { console.warn('team check:', e.message); }
   }
+
   showApp();
+
+  // Load everything in background — never blocks login
+  setTimeout(() => {
+    loadProfile().catch(()=>{});
+    loadSidebarTeam().catch(()=>{});
+    updateTeamPills().catch(()=>{});
+  }, 100);
 }
 
 // SIGNUP
