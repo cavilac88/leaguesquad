@@ -400,6 +400,7 @@ select.form-input{appearance:none;cursor:pointer;}
 
         <div class="dash-grid">
           <div id="next-game-section"></div>
+        <div id="dash-attendance-section" style="display:none;margin-top:16px"></div>
           <div class="card"><div class="card-title">Quick actions</div>
             <div style="display:flex;flex-direction:column;gap:8px">
               <button class="btn btn-ghost" style="justify-content:flex-start" onclick="openM('m-player')">+ Add player to roster</button>
@@ -414,7 +415,7 @@ select.form-input{appearance:none;cursor:pointer;}
       <!-- ROSTER -->
       <div class="page" id="page-roster">
         <div class="page-header"><div><div id="team-pill-roster" class="team-pill" style="display:none"></div><div class="page-title">Roster</div><div class="page-subtitle">Manage your team members</div></div><button class="btn btn-accent" onclick="openM('m-player')">+ Add player</button></div>
-        <div class="card"><table class="data-table"><thead><tr><th>Player</th><th>Role</th><th>Sport</th><th>Location</th><th></th></tr></thead><tbody id="roster-body"><tr><td colspan="5"><div class="empty-state"><div class="empty-icon">👥</div><p>No players yet</p></div></td></tr></tbody></table></div>
+        <div class="card"><table class="data-table"><thead><tr><th>Player</th><th>Role</th><th>Preferences</th><th>Attendance</th><th></th></tr></thead><tbody id="roster-body"><tr><td colspan="5"><div class="empty-state"><div class="empty-icon">👥</div><p>No players yet</p></div></td></tr></tbody></table></div>
       </div>
 
       <!-- SCHEDULE -->
@@ -1219,7 +1220,7 @@ function showAuth(){document.getElementById('auth-screen').style.display='flex';
 function showApp(){document.getElementById('auth-screen').style.display='none';document.getElementById('app-screen').style.display='block';loadDashboard();}
 
 // NAV
-const PAGES=['dashboard','roster','schedule','lineup','messages','teams','profile'];
+const PAGES=['dashboard','roster','lineup','schedule','messages','teams','profile'];
 function nav(page){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
@@ -1244,6 +1245,7 @@ function toggleSidebar(){document.getElementById('sidebar').classList.toggle('op
 // DASHBOARD
 async function loadDashboard(){
   loadActiveTeamBanner().catch(()=>{});
+  loadDashAttendance().catch(()=>{});
   const[r1,r2,r3,r4]=await Promise.all([
     sb.from('players').select('*',{count:'exact',head:true}),
     sb.from('games').select('*',{count:'exact',head:true}),
@@ -1270,7 +1272,44 @@ async function loadRoster(){
   const{data}=await sb.from('players').select('*').order('first_name');
   const tb=document.getElementById('roster-body');
   if(!data?.length){tb.innerHTML='<tr><td colspan="5"><div class="empty-state"><div class="empty-icon">👥</div><p>No players yet</p></div></td></tr>';return;}
-  tb.innerHTML=data.map(p=>`<tr><td><div style="display:flex;align-items:center;gap:10px"><div class="avatar" style="width:30px;height:30px;font-size:11px">${(p.first_name||'?').charAt(0)}</div><span style="font-weight:500">${p.first_name||''} ${p.last_name||''}</span></div></td><td><span class="badge ${p.role==='captain'?'badge-accent':'badge-gray'}">${p.role||'Player'}</span></td><td><span class="badge badge-accent2">${p.sport||'Kickball'}</span></td><td><span style="font-size:13px;color:var(--text2)">${p.city||'—'}</span></td><td style="text-align:right"><button class="btn btn-danger btn-sm" onclick="removePlayer('${p.id}')">Remove</button></td></tr>`).join('');
+  
+  // Load attendance for next game
+  const teamId = localStorage.getItem('ls-active-team-' + user.id);
+  const attKey = 'attendance-' + teamId;
+  const attData = localStorage.getItem(attKey);
+  const att = attData ? JSON.parse(attData) : {};
+  
+  tb.innerHTML=data.map(p=>{
+    const name = (p.first_name + ' ' + (p.last_name||'')).trim();
+    const prefs = p.position_prefs ? JSON.parse(p.position_prefs) : [];
+    const prefText = prefs.length ? prefs.map((pos,i) => `<span style="font-size:11px;background:var(--accent-t);color:var(--accent);padding:2px 7px;border-radius:10px;margin-right:3px">${i+1}. ${pos}</span>`).join('') : '<span style="font-size:11px;color:var(--text3)">No prefs</span>';
+    const attStatus = att[name] || 'present';
+    const isPresent = attStatus === 'present';
+    
+    return `<tr>
+      <td><div style="display:flex;align-items:center;gap:10px">
+        <div class="avatar" style="width:30px;height:30px;font-size:11px;opacity:${isPresent?'1':'0.5'}">${(p.first_name||'?').charAt(0)}</div>
+        <span style="font-weight:500;${isPresent?'':'text-decoration:line-through;color:var(--text3)'}">${p.first_name||''} ${p.last_name||''}</span>
+      </div></td>
+      <td><span class="badge ${p.role==='captain'?'badge-accent':'badge-gray'}">${p.role||'Player'}</span></td>
+      <td>${prefText}</td>
+      <td>
+        <div style="display:flex;gap:4px">
+          <button onclick="toggleRosterAttendance('${name}','present','${teamId}')" style="padding:3px 9px;border-radius:6px;font-size:11px;font-weight:600;border:1px solid ${isPresent?'var(--success)':'var(--border2)'};background:${isPresent?'rgba(16,185,129,0.12)':'transparent'};color:${isPresent?'#10B981':'var(--text3)'};cursor:pointer">In</button>
+          <button onclick="toggleRosterAttendance('${name}','absent','${teamId}')" style="padding:3px 9px;border-radius:6px;font-size:11px;font-weight:600;border:1px solid ${!isPresent?'var(--danger)':'var(--border2)'};background:${!isPresent?'rgba(239,68,68,0.1)':'transparent'};color:${!isPresent?'#EF4444':'var(--text3)'};cursor:pointer">Out</button>
+        </div>
+      </td>
+      <td style="text-align:right"><button class="btn btn-danger btn-sm" onclick="removePlayer('${p.id}')">Remove</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function toggleRosterAttendance(name, status, teamId) {
+  const key = 'attendance-' + teamId;
+  const att = JSON.parse(localStorage.getItem(key) || '{}');
+  att[name] = status;
+  localStorage.setItem(key, JSON.stringify(att));
+  loadRoster();
 }
 
 async function addPlayer(){
@@ -2563,28 +2602,9 @@ function togglePosPref(pos) {
   renderPosPrefsPicker();
 }
 
-// Load prefs into profile page
-const origLoadProfilePage = loadProfilePage;
-async function loadProfilePage() {
-  await origLoadProfilePage();
-  // Load position prefs
-  const { data } = await sb.from('profiles').select('position_prefs').eq('id', user.id).maybeSingle();
-  selectedPosPrefs = data?.position_prefs ? JSON.parse(data.position_prefs) : [];
-  renderPosPrefsPicker();
-}
+// Load position prefs when profile page loads - called from loadProfilePage
 
-// Hook into saveProfile to also save position prefs
-const origSaveProfile = saveProfile;
-async function saveProfile() {
-  // Add position_prefs to the save
-  const posPrefsEl = document.getElementById('prof-pos-prefs');
-  if (posPrefsEl) {
-    // Will be included via the updates object patch below
-  }
-  await origSaveProfile();
-  // Save position prefs separately
-  await sb.from('profiles').update({ position_prefs: JSON.stringify(selectedPosPrefs) }).eq('id', user.id);
-}
+// position_prefs saved within saveProfile directly
 
 // ── CONFIGURABLE POSITIONS ──
 let activePositions = [...ALL_POSITIONS];
@@ -2945,6 +2965,69 @@ async function repairPlayerTeamIds() {
   if (!teamId) return;
   // Update all players that have user.id as team_id to use the actual team_id
   await sb.from('players').update({ team_id: teamId }).eq('team_id', user.id);
+}
+
+
+async function loadDashAttendance() {
+  const section = document.getElementById('dash-attendance-section');
+  if (!section) return;
+
+  // Get next game
+  const { data: games } = await sb.from('games').select('*').gte('game_date', new Date().toISOString().split('T')[0]).order('game_date').limit(1);
+  const nextGame = games?.[0];
+  if (!nextGame) { section.style.display = 'none'; return; }
+
+  // Get players
+  const { data: players } = await sb.from('players').select('*').order('first_name');
+  if (!players?.length) { section.style.display = 'none'; return; }
+
+  const teamId = localStorage.getItem('ls-active-team-' + user.id);
+  const attKey = 'attendance-' + teamId + '-' + nextGame.id;
+  const attKeyGeneral = 'attendance-' + teamId;
+  
+  // Try game-specific attendance first, fall back to general
+  const attData = localStorage.getItem(attKey) || localStorage.getItem(attKeyGeneral);
+  const att = attData ? JSON.parse(attData) : {};
+
+  const presentCount = players.filter(p => {
+    const name = (p.first_name + ' ' + (p.last_name||'')).trim();
+    return att[name] !== 'absent';
+  }).length;
+
+  section.style.display = 'block';
+  section.innerHTML = `
+    <div class="card">
+      <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">
+        Attendance — ${nextGame.opponent}
+        <span style="font-size:12px;color:var(--text2);font-weight:400">${presentCount}/${players.length} confirmed</span>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px">
+        ${players.map(p => {
+          const name = (p.first_name + ' ' + (p.last_name||'')).trim();
+          const status = att[name] || 'unknown';
+          const colors = { present: '#10B981', absent: '#EF4444', unknown: 'var(--text3)' };
+          const bgs = { present: 'rgba(16,185,129,0.1)', absent: 'rgba(239,68,68,0.08)', unknown: 'var(--surface2)' };
+          const borders = { present: 'rgba(16,185,129,0.3)', absent: 'rgba(239,68,68,0.2)', unknown: 'var(--border2)' };
+          return `<div onclick="cycleDashAttendance('${name}','${nextGame.id}','${teamId}')" style="display:flex;align-items:center;gap:6px;padding:6px 10px;border-radius:20px;background:${bgs[status]};border:1px solid ${borders[status]};cursor:pointer;transition:all 0.15s">
+            <div style="width:8px;height:8px;border-radius:50%;background:${colors[status]}"></div>
+            <span style="font-size:12px;font-weight:500;color:${colors[status]}">${p.first_name}</span>
+          </div>`;
+        }).join('')}
+      </div>
+      <div style="font-size:11px;color:var(--text3);margin-top:10px">Click a player to toggle: unknown → present → absent</div>
+    </div>`;
+}
+
+function cycleDashAttendance(name, gameId, teamId) {
+  const key = 'attendance-' + teamId + '-' + gameId;
+  const keyGeneral = 'attendance-' + teamId;
+  const att = JSON.parse(localStorage.getItem(key) || localStorage.getItem(keyGeneral) || '{}');
+  const current = att[name] || 'unknown';
+  const next = current === 'unknown' ? 'present' : current === 'present' ? 'absent' : 'unknown';
+  att[name] = next;
+  localStorage.setItem(key, JSON.stringify(att));
+  localStorage.setItem(keyGeneral, JSON.stringify(att));
+  loadDashAttendance();
 }
 
 // COUNTRY AUTOCOMPLETE
